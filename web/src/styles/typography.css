@@ -1,0 +1,35 @@
+/* Devotte typography tokens — three voices, three jobs
+   Space Grotesk (display, large sizes only) · Inter (body/UI) · JetBrains Mono (technical labels) */
+
+:root {
+  --font-display: 'Space Grotesk', 'Arial', sans-serif;
+  --font-body: 'Inter', 'Arial', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+
+  /* Weights actually shipped */
+  --weight-display-bold: 700;
+  --weight-display-medium: 500;
+  --weight-body: 400;
+  --weight-body-medium: 500;
+  --weight-body-semibold: 600;
+  --weight-mono: 500;
+
+  /* Screen scale (manual gives print pts; these are the web equivalents) */
+  --text-display-xl: 56px;   /* hero headlines — SG Bold */
+  --text-display-lg: 40px;   /* page titles — SG Bold */
+  --text-display-md: 30px;   /* section titles — SG Bold */
+  --text-subtitle: 21px;     /* subtitles — SG Medium */
+  --text-lead: 18px;         /* lead paragraph — Inter Regular */
+  --text-body: 15px;         /* body — Inter Regular */
+  --text-sm: 13px;           /* secondary/UI — Inter */
+  --text-label: 12px;        /* mono section labels, folios — JB Mono */
+  --text-caption: 11px;      /* captions, fine print — Inter */
+
+  --leading-display: 1.1;
+  --leading-subtitle: 1.3;
+  --leading-body: 1.55;
+  --tracking-display: -0.02em;
+  --tracking-label: 0.04em;  /* mono labels get a little air */
+}
+
+/* Space Grotesk only at large sizes (>= ~21px); below that it loses its character — use Inter. */

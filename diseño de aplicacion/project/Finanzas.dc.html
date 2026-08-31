@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  body{margin:0;background:#E4E1D8;font-family:'Inter',Arial,sans-serif;}
+  .scr::-webkit-scrollbar{width:0;height:0;}
+  .scr{scrollbar-width:none;}
+</style>
+</helmet>
+<section style="padding:56px 48px 40px;display:flex;flex-direction:column;gap:28px;">
+  <div style="display:flex;flex-direction:column;gap:6px;max-width:900px;">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.04em;color:#0F6E56;">&lt;02 · flujo completo &middot; dirección 1a&gt;</div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;color:#16232B;letter-spacing:-0.02em;">Las 6 pantallas</div>
+    <div style="font-size:15px;line-height:1.55;color:rgba(22,35,43,0.6);max-width:620px;">Registrar gasto, detalle de rubro, compra MSI + cronograma, compromiso futuro MSI, bolsas de ahorro y métodos de pago — mismos colores, tipografía y datos que el home.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start;">
+
+    <!-- ============ 2A · REGISTRAR GASTO ============ -->
+    <div id="2a" style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;align-items:center;gap:10px;"><span style="display:inline-flex;align-items:center;justify-content:center;height:26px;padding:0 12px;border-radius:999px;background:#16232B;color:#F5F4EF;font-family:'JetBrains Mono',monospace;font-size:12px;">2a</span><span style="font-size:14px;font-weight:600;">Registrar gasto</span></div>
+      <div style="width:390px;height:844px;background:#F5F4EF;border-radius:44px;box-shadow:0 2px 4px rgba(22,35,43,0.06),0 24px 60px rgba(22,35,43,0.20);border:1px solid rgba(22,35,43,0.10);overflow:hidden;display:flex;flex-direction:column;color:#16232B;">
+        <div style="height:52px;padding:16px 30px 0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;"><span style="font-size:14px;font-weight:600;">9:41</span><div style="display:flex;gap:7px;align-items:center;"><i data-lucide="signal" style="width:16px;height:16px;"></i><i data-lucide="wifi" style="width:16px;height:16px;"></i><i data-lucide="battery-full" style="width:20px;height:20px;"></i></div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 20px 14px;flex-shrink:0;">
+          <div style="width:40px;height:40px;border-radius:999px;background:#fff;border:1px solid rgba(22,35,43,0.10);display:flex;align-items:center;justify-content:center;"><i data-lucide="chevron-left" style="width:20px;height:20px;"></i></div>
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;">Nuevo gasto</span>
+          <div style="width:40px;"></div>
+        </div>
+        <div class="scr" style="flex:1;overflow-y:auto;padding:6px 22px 20px;">
+          <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:20px;padding:22px;text-align:center;box-shadow:0 1px 2px rgba(22,35,43,0.05);">
+            <div style="font-size:12.5px;color:rgba(22,35,43,0.55);">Monto</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:48px;letter-spacing:-0.03em;margin-top:4px;">$480<span style="color:rgba(22,35,43,0.25);">.00</span></div>
+          </div>
+          <div style="margin-top:20px;">
+            <div style="font-size:12px;color:rgba(22,35,43,0.55);margin-bottom:8px;font-weight:500;">Rubro</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <span style="height:34px;padding:0 14px;display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:#16232B;color:#F5F4EF;font-size:13px;font-weight:500;"><i data-lucide="shopping-cart" style="width:15px;height:15px;"></i>Súper</span>
+              <span style="height:34px;padding:0 14px;display:inline-flex;align-items:center;border-radius:999px;background:#fff;border:1px solid rgba(22,35,43,0.14);font-size:13px;">Comida fuera</span>
+              <span style="height:34px;padding:0 14px;display:inline-flex;align-items:center;border-radius:999px;background:#fff;border:1px solid rgba(22,35,43,0.14);font-size:13px;">Transporte</span>
+              <span style="height:34px;padding:0 14px;display:inline-flex;align-items:center;border-radius:999px;background:#fff;border:1px solid rgba(22,35,43,0.14);font-size:13px;">Casa</span>
+              <span style="height:34px;padding:0 14px;display:inline-flex;align-items:center;border-radius:999px;background:#fff;border:1px solid rgba(22,35,43,0.14);font-size:13px;">Entretenimiento</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;color:#0F6E56;"><i data-lucide="wallet" style="width:14px;height:14px;"></i>Disponible en Súper: <b>$2,180</b></div>
+          </div>
+          <div style="margin-top:20px;">
+            <div style="font-size:12px;color:rgba(22,35,43,0.55);margin-bottom:6px;font-weight:500;">Método de pago</div>
+            <div style="height:50px;background:#fff;border:1px solid rgba(22,35,43,0.14);border-radius:12px;display:flex;align-items:center;padding:0 14px;gap:11px;">
+              <div style="width:30px;height:30px;border-radius:8px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;"><i data-lucide="credit-card" style="width:16px;height:16px;color:#0F6E56;"></i></div>
+              <span style="flex:1;font-size:14.5px;">Tarjeta BBVA ···4821</span>
+              <i data-lucide="chevron-down" style="width:18px;height:18px;color:rgba(22,35,43,0.4);"></i>
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:12px;">
+            <div style="flex:1;"><div style="font-size:12px;color:rgba(22,35,43,0.55);margin-bottom:6px;font-weight:500;">Fecha</div><div style="height:50px;background:#fff;border:1px solid rgba(22,35,43,0.14);border-radius:12px;display:flex;align-items:center;padding:0 14px;gap:9px;font-size:14.5px;"><i data-lucide="calendar" style="width:16px;height:16px;color:rgba(22,35,43,0.4);"></i>30 ago 2026</div></div>
+          </div>
+          <div style="margin-top:16px;">
+            <div style="font-size:12px;color:rgba(22,35,43,0.55);margin-bottom:6px;font-weight:500;">Descripción</div>
+            <div style="min-height:50px;background:#fff;border:1px solid rgba(22,35,43,0.14);border-radius:12px;display:flex;align-items:center;padding:12px 14px;font-size:14.5px;">Despensa de la semana</div>
+          </div>
+        </div>
+        <div style="flex-shrink:0;padding:14px 22px 28px;background:#F5F4EF;border-top:1px solid rgba(22,35,43,0.06);">
+          <div style="height:52px;border-radius:999px;background:#16232B;color:#F5F4EF;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15.5px;font-weight:600;"><i data-lucide="check" style="width:19px;height:19px;"></i>Guardar gasto</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 2B · DETALLE DE RUBRO ============ -->
+    <div id="2b" style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;align-items:center;gap:10px;"><span style="display:inline-flex;align-items:center;justify-content:center;height:26px;padding:0 12px;border-radius:999px;background:#16232B;color:#F5F4EF;font-family:'JetBrains Mono',monospace;font-size:12px;">2b</span><span style="font-size:14px;font-weight:600;">Disponible por rubro · detalle</span></div>
+      <div style="width:390px;height:844px;background:#F5F4EF;border-radius:44px;box-shadow:0 2px 4px rgba(22,35,43,0.06),0 24px 60px rgba(22,35,43,0.20);border:1px solid rgba(22,35,43,0.10);overflow:hidden;display:flex;flex-direction:column;color:#16232B;">
+        <div style="height:52px;padding:16px 30px 0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;"><span style="font-size:14px;font-weight:600;">9:41</span><div style="display:flex;gap:7px;align-items:center;"><i data-lucide="signal" style="width:16px;height:16px;"></i><i data-lucide="wifi" style="width:16px;height:16px;"></i><i data-lucide="battery-full" style="width:20px;height:20px;"></i></div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 20px 12px;flex-shrink:0;">
+          <div style="width:40px;height:40px;border-radius:999px;background:#fff;border:1px solid rgba(22,35,43,0.10);display:flex;align-items:center;justify-content:center;"><i data-lucide="chevron-left" style="width:20px;height:20px;"></i></div>
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;">Súper y despensa</span>
+          <div style="width:40px;height:40px;border-radius:999px;background:#fff;border:1px solid rgba(22,35,43,0.10);display:flex;align-items:center;justify-content:center;"><i data-lucide="ellipsis" style="width:20px;height:20px;"></i></div>
+        </div>
+        <div class="scr" style="flex:1;overflow-y:auto;padding:6px 22px 24px;">
+          <div style="border-radius:22px;background:linear-gradient(135deg,#16232B 0%,#0F4A3C 100%);box-shadow:0 12px 28px rgba(22,35,43,0.22);padding:22px;color:#F5F4EF;">
+            <div style="font-size:13px;color:rgba(245,244,239,0.7);">Disponible este mes</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:44px;letter-spacing:-0.03em;line-height:1;margin-top:3px;">$2,180</div>
+            <div style="font-size:12.5px;color:rgba(245,244,239,0.6);margin-top:8px;">gastado $4,820 de $7,000</div>
+            <div style="height:7px;border-radius:999px;background:rgba(245,244,239,0.15);margin-top:14px;overflow:hidden;"><div style="width:69%;height:100%;background:#5FD3A6;border-radius:999px;"></div></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px;">
+            <div style="flex:1;background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:16px;padding:14px;">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.05em;color:rgba(22,35,43,0.45);">&lt;aportaciones&gt;</div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:10px;"><span style="color:rgba(22,35,43,0.6);">Tú</span><span style="font-weight:600;">$4,000</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:6px;"><span style="color:rgba(22,35,43,0.6);">Marifer</span><span style="font-weight:600;">$3,000</span></div>
+              <div style="height:1px;background:rgba(22,35,43,0.08);margin:10px 0 8px;"></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:rgba(22,35,43,0.6);">Total</span><span style="font-weight:700;">$7,000</span></div>
+            </div>
+            <div style="flex:1;background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:16px;padding:14px;">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.05em;color:rgba(22,35,43,0.45);">&lt;gastado&gt;</div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:26px;margin-top:8px;letter-spacing:-0.02em;">$4,820</div>
+              <div style="font-size:11.5px;color:rgba(22,35,43,0.5);margin-top:2px;">en 9 movimientos</div>
+            </div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.05em;color:rgba(22,35,43,0.5);margin:22px 4px 12px;">&lt;movimientos · agosto&gt;</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;"><div style="width:34px;height:34px;border-radius:10px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;"><i data-lucide="shopping-cart" style="width:17px;height:17px;color:#0F6E56;"></i></div><div style="flex:1;"><div style="font-size:13.5px;font-weight:500;">Despensa semanal</div><div style="font-size:11.5px;color:rgba(22,35,43,0.5);">BBVA ···4821 · 28 ago</div></div><span style="font-weight:600;font-size:14.5px;">$980</span></div>
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;"><div style="width:34px;height:34px;border-radius:10px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;"><i data-lucide="shopping-cart" style="width:17px;height:17px;color:#0F6E56;"></i></div><div style="flex:1;"><div style="font-size:13.5px;font-weight:500;">Verdulería</div><div style="font-size:11.5px;color:rgba(22,35,43,0.5);">Efectivo · 24 ago</div></div><span style="font-weight:600;font-size:14.5px;">$430</span></div>
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;"><div style="width:34px;height:34px;border-radius:10px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;"><i data-lucide="shopping-cart" style="width:17px;height:17px;color:#0F6E56;"></i></div><div style="flex:1;"><div style="font-size:13.5px;font-weight:500;">Costco</div><div style="font-size:11.5px;color:rgba(22,35,43,0.5);">Débito Nu ···9012 · 19 ago</div></div><span style="font-weight:600;font-size:14.5px;">$1,860</span></div>
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;"><div style="width:34px;height:34px;border-radius:10px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;"><i data-lucide="shopping-cart" style="width:17px;height:17px;color:#0F6E56;"></i></div><div style="flex:1;"><div style="font-size:13.5px;font-weight:500;">Despensa semanal</div><div style="font-size:11.5px;color:rgba(22,35,43,0.5);">BBVA ···4821 · 12 ago</div></div><span style="font-weight:600;font-size:14.5px;">$1,010</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 2C · COMPRA MSI + CRONOGRAMA ============ -->
+    <div id="2c" style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;align-items:center;gap:10px;"><span style="display:inline-flex;align-items:center;justify-content:center;height:26px;padding:0 12px;border-radius:999px;background:#16232B;color:#F5F4EF;font-family:'JetBrains Mono',monospace;font-size:12px;">2c</span><span style="font-size:14px;font-weight:600;">Compra a MSI + cronograma</span></div>
+      <div style="width:390px;height:844px;background:#F5F4EF;border-radius:44px;box-shadow:0 2px 4px rgba(22,35,43,0.06),0 24px 60px rgba(22,35,43,0.20);border:1px solid rgba(22,35,43,0.10);overflow:hidden;display:flex;flex-direction:column;color:#16232B;">
+        <div style="height:52px;padding:16px 30px 0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;"><span style="font-size:14px;font-weight:600;">9:41</span><div style="display:flex;gap:7px;align-items:center;"><i data-lucide="signal" style="width:16px;height:16px;"></i><i data-lucide="wifi" style="width:16px;height:16px;"></i><i data-lucide="battery-full" style="width:20px;height:20px;"></i></div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 20px 12px;flex-shrink:0;">
+          <div style="width:40px;height:40px;border-radius:999px;background:#fff;border:1px solid rgba(22,35,43,0.10);display:flex;align-items:center;justify-content:center;"><i data-lucide="chevron-left" style="width:20px;height:20px;"></i></div>
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;">Compra a meses</span>
+          <div style="width:40px;"></div>
+        </div>
+        <div class="scr" style="flex:1;overflow-y:auto;padding:6px 22px 20px;">
+          <div style="margin-bottom:14px;"><div style="font-size:12px;color:rgba(22,35,43,0.55);margin-bottom:6px;font-weight:500;">Tarjeta</div><div style="height:50px;background:#fff;border:1px solid rgba(22,35,43,0.14);border-radius:12px;display:flex;align-items:center;padding:0 14px;gap:11px;"><div style="width:30px;height:30px;border-radius:8px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;"><i data-lucide="credit-card" style="width:16px;height:16px;color:#0F6E56;"></i></div><span style="flex:1;font-size:14.5px;">Tarjeta BBVA ···4821</span><i data-lucide="chevron-down" style="width:18px;height:18px;color:rgba(22,35,43,0.4);"></i></div></div>
+          <div style="margin-bottom:14px;"><div style="font-size:12px;color:rgba(22,35,43,0.55);margin-bottom:6px;font-weight:500;">Descripción</div><div style="height:50px;background:#fff;border:1px solid rgba(22,35,43,0.14);border-radius:12px;display:flex;align-items:center;padding:0 14px;font-size:14.5px;">Refrigerador Mabe</div></div>
+          <div style="display:flex;gap:12px;margin-bottom:16px;">
+            <div style="flex:1.2;"><div style="font-size:12px;color:rgba(22,35,43,0.55);margin-bottom:6px;font-weight:500;">Monto total</div><div style="height:50px;background:#fff;border:1px solid rgba(22,35,43,0.14);border-radius:12px;display:flex;align-items:center;padding:0 14px;font-size:15px;font-weight:600;">$12,000</div></div>
+            <div style="flex:1;"><div style="font-size:12px;color:rgba(22,35,43,0.55);margin-bottom:6px;font-weight:500;">Fecha</div><div style="height:50px;background:#fff;border:1px solid rgba(22,35,43,0.14);border-radius:12px;display:flex;align-items:center;padding:0 12px;gap:7px;font-size:13.5px;"><i data-lucide="calendar" style="width:15px;height:15px;color:rgba(22,35,43,0.4);"></i>28 ago</div></div>
+          </div>
+          <div style="font-size:12px;color:rgba(22,35,43,0.55);margin-bottom:8px;font-weight:500;">Plazo</div>
+          <div style="display:flex;gap:8px;margin-bottom:20px;">
+            <span style="flex:1;height:40px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#fff;border:1px solid rgba(22,35,43,0.14);font-size:13px;">3</span>
+            <span style="flex:1;height:40px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#fff;border:1px solid rgba(22,35,43,0.14);font-size:13px;">6</span>
+            <span style="flex:1;height:40px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#16232B;color:#F5F4EF;font-size:13px;font-weight:600;">12</span>
+            <span style="flex:1;height:40px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#fff;border:1px solid rgba(22,35,43,0.14);font-size:13px;">18</span>
+            <span style="flex:1;height:40px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#fff;border:1px solid rgba(22,35,43,0.14);font-size:13px;">24</span>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.05em;color:#0F6E56;margin:0 2px 10px;">&lt;cronograma generado&gt;</div>
+          <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:18px;padding:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-size:13px;color:rgba(22,35,43,0.6);">12 cuotas de</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:24px;">$1,000</span></div>
+            <div style="height:1px;background:rgba(22,35,43,0.08);margin:12px 0;"></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;"><span style="color:rgba(22,35,43,0.6);">Cuota 1 · sep 2026</span><span style="font-weight:500;">$1,000</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;"><span style="color:rgba(22,35,43,0.6);">Cuota 2 · oct 2026</span><span style="font-weight:500;">$1,000</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;"><span style="color:rgba(22,35,43,0.6);">Cuota 3 · nov 2026</span><span style="font-weight:500;">$1,000</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;color:rgba(22,35,43,0.4);"><span>+ 9 cuotas más · hasta ago 2027</span><span></span></div>
+          </div>
+        </div>
+        <div style="flex-shrink:0;padding:14px 22px 28px;background:#F5F4EF;border-top:1px solid rgba(22,35,43,0.06);"><div style="height:52px;border-radius:999px;background:#16232B;color:#F5F4EF;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15.5px;font-weight:600;"><i data-lucide="check" style="width:19px;height:19px;"></i>Registrar compra</div></div>
+      </div>
+    </div>
+
+    <!-- ============ 2D · COMPROMISO FUTURO MSI ============ -->
+    <div id="2d" style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;align-items:center;gap:10px;"><span style="display:inline-flex;align-items:center;justify-content:center;height:26px;padding:0 12px;border-radius:999px;background:#16232B;color:#F5F4EF;font-family:'JetBrains Mono',monospace;font-size:12px;">2d</span><span style="font-size:14px;font-weight:600;">Compromiso futuro MSI</span></div>
+      <div style="width:390px;height:844px;background:#F5F4EF;border-radius:44px;box-shadow:0 2px 4px rgba(22,35,43,0.06),0 24px 60px rgba(22,35,43,0.20);border:1px solid rgba(22,35,43,0.10);overflow:hidden;display:flex;flex-direction:column;color:#16232B;">
+        <div style="height:52px;padding:16px 30px 0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;"><span style="font-size:14px;font-weight:600;">9:41</span><div style="display:flex;gap:7px;align-items:center;"><i data-lucide="signal" style="width:16px;height:16px;"></i><i data-lucide="wifi" style="width:16px;height:16px;"></i><i data-lucide="battery-full" style="width:20px;height:20px;"></i></div></div>
+        <div class="scr" style="flex:1;overflow-y:auto;padding:8px 22px 24px;">
+          <div style="padding:8px 4px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;color:rgba(22,35,43,0.5);">meses sin intereses</div><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:24px;letter-spacing:-0.02em;margin-top:2px;">Compromiso MSI</div></div>
+          <div style="margin-top:16px;border-radius:22px;background:linear-gradient(135deg,#16232B 0%,#0F4A3C 100%);box-shadow:0 12px 28px rgba(22,35,43,0.22);padding:22px;color:#F5F4EF;">
+            <div style="font-size:13px;color:rgba(245,244,239,0.7);">Pendiente total</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:44px;letter-spacing:-0.03em;line-height:1;margin-top:3px;">$10,360</div>
+            <div style="display:flex;gap:8px;margin-top:16px;">
+              <div style="flex:1;background:rgba(245,244,239,0.08);border:1px solid rgba(245,244,239,0.12);border-radius:14px;padding:10px 12px;"><div style="font-size:10.5px;color:rgba(245,244,239,0.6);">Este mes</div><div style="font-size:15px;font-weight:600;margin-top:3px;">$2,340</div></div>
+              <div style="flex:1;background:rgba(245,244,239,0.08);border:1px solid rgba(245,244,239,0.12);border-radius:14px;padding:10px 12px;"><div style="font-size:10.5px;color:rgba(245,244,239,0.6);">% del ingreso</div><div style="font-size:15px;font-weight:600;margin-top:3px;color:#5FD3A6;">18%</div></div>
+              <div style="flex:1;background:rgba(245,244,239,0.08);border:1px solid rgba(245,244,239,0.12);border-radius:14px;padding:10px 12px;"><div style="font-size:10.5px;color:rgba(245,244,239,0.6);">Compras</div><div style="font-size:15px;font-weight:600;margin-top:3px;">3</div></div>
+            </div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.05em;color:rgba(22,35,43,0.5);margin:22px 4px 12px;">&lt;próximos 6 meses&gt;</div>
+          <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:18px;padding:18px 16px 12px;">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;height:130px;gap:10px;">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;"><span style="font-size:9.5px;color:rgba(22,35,43,0.5);">2.3k</span><div style="width:100%;height:118px;background:#0F6E56;border-radius:7px;"></div><span style="font-size:10px;color:rgba(22,35,43,0.55);">sep</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;"><span style="font-size:9.5px;color:rgba(22,35,43,0.5);">2.3k</span><div style="width:100%;height:118px;background:#0F6E56;border-radius:7px;"></div><span style="font-size:10px;color:rgba(22,35,43,0.55);">oct</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;"><span style="font-size:9.5px;color:rgba(22,35,43,0.5);">1.8k</span><div style="width:100%;height:93px;background:#1D9E75;border-radius:7px;"></div><span style="font-size:10px;color:rgba(22,35,43,0.55);">nov</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;"><span style="font-size:9.5px;color:rgba(22,35,43,0.5);">1.8k</span><div style="width:100%;height:93px;background:#1D9E75;border-radius:7px;"></div><span style="font-size:10px;color:rgba(22,35,43,0.55);">dic</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;"><span style="font-size:9.5px;color:rgba(22,35,43,0.5);">1k</span><div style="width:100%;height:51px;background:#B7D9CC;border-radius:7px;"></div><span style="font-size:10px;color:rgba(22,35,43,0.55);">ene</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;"><span style="font-size:9.5px;color:rgba(22,35,43,0.5);">1k</span><div style="width:100%;height:51px;background:#B7D9CC;border-radius:7px;"></div><span style="font-size:10px;color:rgba(22,35,43,0.55);">feb</span></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:14px;padding:13px 15px;display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:14px;font-weight:600;">Septiembre 2026</div><div style="font-size:11.5px;color:rgba(22,35,43,0.5);margin-top:1px;">BBVA $2,000 · Banorte $340</div></div><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;">$2,340</span></div>
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:14px;padding:13px 15px;display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:14px;font-weight:600;">Octubre 2026</div><div style="font-size:11.5px;color:rgba(22,35,43,0.5);margin-top:1px;">BBVA $2,000 · Banorte $340</div></div><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;">$2,340</span></div>
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:14px;padding:13px 15px;display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:14px;font-weight:600;">Noviembre 2026</div><div style="font-size:11.5px;color:rgba(22,35,43,0.5);margin-top:1px;">BBVA $1,840</div></div><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;">$1,840</span></div>
+          </div>
+        </div>
+        <div style="flex-shrink:0;height:80px;background:#fff;border-top:1px solid rgba(22,35,43,0.08);display:flex;align-items:center;justify-content:space-around;padding:0 14px 18px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(22,35,43,0.4);"><i data-lucide="house" style="width:22px;height:22px;"></i><span style="font-size:10px;">Inicio</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(22,35,43,0.4);"><i data-lucide="receipt-text" style="width:22px;height:22px;"></i><span style="font-size:10px;">Gastos</span></div>
+          <div style="width:54px;height:54px;border-radius:999px;background:#16232B;display:flex;align-items:center;justify-content:center;margin-top:-24px;box-shadow:0 8px 20px rgba(22,35,43,0.30);"><i data-lucide="plus" style="width:26px;height:26px;color:#F5F4EF;"></i></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#16232B;"><i data-lucide="credit-card" style="width:22px;height:22px;"></i><span style="font-size:10px;font-weight:600;">MSI</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(22,35,43,0.4);"><i data-lucide="piggy-bank" style="width:22px;height:22px;"></i><span style="font-size:10px;">Ahorro</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 2E · BOLSAS DE AHORRO ============ -->
+    <div id="2e" style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;align-items:center;gap:10px;"><span style="display:inline-flex;align-items:center;justify-content:center;height:26px;padding:0 12px;border-radius:999px;background:#16232B;color:#F5F4EF;font-family:'JetBrains Mono',monospace;font-size:12px;">2e</span><span style="font-size:14px;font-weight:600;">Bolsas de ahorro</span></div>
+      <div style="width:390px;height:844px;background:#F5F4EF;border-radius:44px;box-shadow:0 2px 4px rgba(22,35,43,0.06),0 24px 60px rgba(22,35,43,0.20);border:1px solid rgba(22,35,43,0.10);overflow:hidden;display:flex;flex-direction:column;color:#16232B;">
+        <div style="height:52px;padding:16px 30px 0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;"><span style="font-size:14px;font-weight:600;">9:41</span><div style="display:flex;gap:7px;align-items:center;"><i data-lucide="signal" style="width:16px;height:16px;"></i><i data-lucide="wifi" style="width:16px;height:16px;"></i><i data-lucide="battery-full" style="width:20px;height:20px;"></i></div></div>
+        <div class="scr" style="flex:1;overflow-y:auto;padding:8px 22px 24px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px 0;">
+            <div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;color:rgba(22,35,43,0.5);">ahorro</div><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:24px;letter-spacing:-0.02em;margin-top:2px;">Tus bolsas</div></div>
+            <div style="width:40px;height:40px;border-radius:999px;background:#16232B;display:flex;align-items:center;justify-content:center;"><i data-lucide="plus" style="width:20px;height:20px;color:#F5F4EF;"></i></div>
+          </div>
+          <div style="margin-top:16px;border-radius:22px;background:linear-gradient(135deg,#16232B 0%,#0F4A3C 100%);box-shadow:0 12px 28px rgba(22,35,43,0.22);padding:22px;color:#F5F4EF;">
+            <div style="font-size:13px;color:rgba(245,244,239,0.7);">Total ahorrado</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:44px;letter-spacing:-0.03em;line-height:1;margin-top:3px;">$47,300</div>
+            <div style="font-size:12.5px;color:rgba(245,244,239,0.6);margin-top:8px;">en 3 bolsas · meta total $180,000</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:18px;">
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:18px;padding:16px;">
+              <div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:12px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;"><i data-lucide="shield-check" style="width:20px;height:20px;color:#0F6E56;"></i></div><div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">Fondo de emergencia</div><div style="font-size:12px;color:rgba(22,35,43,0.5);">$28,000 de $60,000</div></div><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#0F6E56;">47%</span></div>
+              <div style="height:7px;border-radius:999px;background:#E7E4DB;margin-top:12px;overflow:hidden;"><div style="width:47%;height:100%;background:#0F6E56;border-radius:999px;"></div></div>
+            </div>
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:18px;padding:16px;">
+              <div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:12px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;"><i data-lucide="plane" style="width:20px;height:20px;color:#0F6E56;"></i></div><div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">Viaje a Japón</div><div style="font-size:12px;color:rgba(22,35,43,0.5);">$15,300 de $40,000</div></div><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#0F6E56;">38%</span></div>
+              <div style="height:7px;border-radius:999px;background:#E7E4DB;margin-top:12px;overflow:hidden;"><div style="width:38%;height:100%;background:#0F6E56;border-radius:999px;"></div></div>
+            </div>
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:18px;padding:16px;">
+              <div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:12px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;"><i data-lucide="car-front" style="width:20px;height:20px;color:#0F6E56;"></i></div><div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">Enganche coche</div><div style="font-size:12px;color:rgba(22,35,43,0.5);">$4,000 de $80,000</div></div><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#0F6E56;">5%</span></div>
+              <div style="height:7px;border-radius:999px;background:#E7E4DB;margin-top:12px;overflow:hidden;"><div style="width:5%;height:100%;background:#0F6E56;border-radius:999px;"></div></div>
+            </div>
+          </div>
+          <div style="margin-top:16px;height:48px;border-radius:999px;border:1.5px solid rgba(22,35,43,0.16);display:flex;align-items:center;justify-content:center;gap:8px;font-size:14.5px;font-weight:600;color:#16232B;"><i data-lucide="plus" style="width:18px;height:18px;"></i>Registrar aportación</div>
+        </div>
+        <div style="flex-shrink:0;height:80px;background:#fff;border-top:1px solid rgba(22,35,43,0.08);display:flex;align-items:center;justify-content:space-around;padding:0 14px 18px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(22,35,43,0.4);"><i data-lucide="house" style="width:22px;height:22px;"></i><span style="font-size:10px;">Inicio</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(22,35,43,0.4);"><i data-lucide="receipt-text" style="width:22px;height:22px;"></i><span style="font-size:10px;">Gastos</span></div>
+          <div style="width:54px;height:54px;border-radius:999px;background:#16232B;display:flex;align-items:center;justify-content:center;margin-top:-24px;box-shadow:0 8px 20px rgba(22,35,43,0.30);"><i data-lucide="plus" style="width:26px;height:26px;color:#F5F4EF;"></i></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(22,35,43,0.4);"><i data-lucide="credit-card" style="width:22px;height:22px;"></i><span style="font-size:10px;">MSI</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#16232B;"><i data-lucide="piggy-bank" style="width:22px;height:22px;"></i><span style="font-size:10px;font-weight:600;">Ahorro</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 2F · MÉTODOS DE PAGO / TARJETAS ============ -->
+    <div id="2f" style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;align-items:center;gap:10px;"><span style="display:inline-flex;align-items:center;justify-content:center;height:26px;padding:0 12px;border-radius:999px;background:#16232B;color:#F5F4EF;font-family:'JetBrains Mono',monospace;font-size:12px;">2f</span><span style="font-size:14px;font-weight:600;">Métodos de pago y tarjetas</span></div>
+      <div style="width:390px;height:844px;background:#F5F4EF;border-radius:44px;box-shadow:0 2px 4px rgba(22,35,43,0.06),0 24px 60px rgba(22,35,43,0.20);border:1px solid rgba(22,35,43,0.10);overflow:hidden;display:flex;flex-direction:column;color:#16232B;">
+        <div style="height:52px;padding:16px 30px 0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;"><span style="font-size:14px;font-weight:600;">9:41</span><div style="display:flex;gap:7px;align-items:center;"><i data-lucide="signal" style="width:16px;height:16px;"></i><i data-lucide="wifi" style="width:16px;height:16px;"></i><i data-lucide="battery-full" style="width:20px;height:20px;"></i></div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 20px 12px;flex-shrink:0;">
+          <div style="width:40px;height:40px;border-radius:999px;background:#fff;border:1px solid rgba(22,35,43,0.10);display:flex;align-items:center;justify-content:center;"><i data-lucide="chevron-left" style="width:20px;height:20px;"></i></div>
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;">Métodos de pago</span>
+          <div style="width:40px;"></div>
+        </div>
+        <div class="scr" style="flex:1;overflow-y:auto;padding:6px 22px 24px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.05em;color:rgba(22,35,43,0.5);margin:8px 2px 12px;">&lt;tarjetas de crédito&gt;</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:18px;padding:16px;">
+              <div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:12px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;"><i data-lucide="credit-card" style="width:20px;height:20px;color:#0F6E56;"></i></div><div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">BBVA Azul</div><div style="font-size:12px;color:rgba(22,35,43,0.5);">···4821 · corte 15 · pago 5</div></div><div style="text-align:right;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;">$3,340</div><div style="font-size:10.5px;color:rgba(22,35,43,0.45);">saldo</div></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:11.5px;color:rgba(22,35,43,0.5);margin-top:14px;"><span>Utilización</span><span>7% de $45,000</span></div>
+              <div style="height:6px;border-radius:999px;background:#E7E4DB;margin-top:6px;overflow:hidden;"><div style="width:7%;height:100%;background:#0F6E56;border-radius:999px;"></div></div>
+            </div>
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:18px;padding:16px;">
+              <div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:12px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;"><i data-lucide="credit-card" style="width:20px;height:20px;color:#0F6E56;"></i></div><div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">Banorte Oro</div><div style="font-size:12px;color:rgba(22,35,43,0.5);">···2210 · corte 20 · pago 10</div></div><div style="text-align:right;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;">$1,500</div><div style="font-size:10.5px;color:rgba(22,35,43,0.45);">saldo</div></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:11.5px;color:rgba(22,35,43,0.5);margin-top:14px;"><span>Utilización</span><span>5% de $30,000</span></div>
+              <div style="height:6px;border-radius:999px;background:#E7E4DB;margin-top:6px;overflow:hidden;"><div style="width:5%;height:100%;background:#0F6E56;border-radius:999px;"></div></div>
+            </div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.05em;color:rgba(22,35,43,0.5);margin:22px 2px 12px;">&lt;otros métodos&gt;</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;"><div style="width:38px;height:38px;border-radius:11px;background:rgba(22,35,43,0.06);display:flex;align-items:center;justify-content:center;"><i data-lucide="banknote" style="width:19px;height:19px;color:#16232B;"></i></div><div style="flex:1;"><div style="font-size:14px;font-weight:600;">Efectivo</div><div style="font-size:11.5px;color:rgba(22,35,43,0.5);">Sin corte</div></div><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(22,35,43,0.4);">efectivo</span></div>
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;"><div style="width:38px;height:38px;border-radius:11px;background:rgba(22,35,43,0.06);display:flex;align-items:center;justify-content:center;"><i data-lucide="landmark" style="width:19px;height:19px;color:#16232B;"></i></div><div style="flex:1;"><div style="font-size:14px;font-weight:600;">Débito Nu</div><div style="font-size:11.5px;color:rgba(22,35,43,0.5);">···9012</div></div><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(22,35,43,0.4);">débito</span></div>
+          </div>
+          <div style="margin-top:18px;height:48px;border-radius:999px;border:1.5px solid rgba(22,35,43,0.16);display:flex;align-items:center;justify-content:center;gap:8px;font-size:14.5px;font-weight:600;color:#16232B;"><i data-lucide="plus" style="width:18px;height:18px;"></i>Agregar método</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section style="padding:56px 48px 80px;display:flex;flex-direction:column;gap:28px;">
+  <div style="display:flex;flex-direction:column;gap:6px;max-width:900px;">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.04em;color:#0F6E56;">&lt;01 · home &middot; disponible por rubro&gt;</div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;color:#16232B;letter-spacing:-0.02em;">Dos direcciones del inicio</div>
+    <div style="font-size:15px;line-height:1.55;color:rgba(22,35,43,0.6);max-width:620px;">Ambas parten de lo que pediste: lo primero que ves es cuánto te queda disponible por rubro este mes. Dime cuál te late (<b>1a</b> o <b>1b</b>) y construyo con esa dirección las 6 pantallas restantes.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start;">
+
+    <!-- ===================== OPTION 1A ===================== -->
+    <div id="1a" style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;height:26px;padding:0 12px;border-radius:999px;background:#16232B;color:#F5F4EF;font-family:'JetBrains Mono',monospace;font-size:12px;">1a</span>
+        <span style="font-size:14px;font-weight:600;color:#16232B;">Lista cálida &middot; una columna que respira</span>
+      </div>
+
+      <div style="width:390px;height:844px;background:#F5F4EF;border-radius:44px;box-shadow:0 2px 4px rgba(22,35,43,0.06),0 24px 60px rgba(22,35,43,0.20);border:1px solid rgba(22,35,43,0.10);overflow:hidden;display:flex;flex-direction:column;color:#16232B;">
+        <!-- status bar -->
+        <div style="height:52px;padding:16px 30px 0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+          <span style="font-size:14px;font-weight:600;">9:41</span>
+          <div style="display:flex;gap:7px;align-items:center;color:#16232B;"><i data-lucide="signal" style="width:16px;height:16px;"></i><i data-lucide="wifi" style="width:16px;height:16px;"></i><i data-lucide="battery-full" style="width:20px;height:20px;"></i></div>
+        </div>
+        <!-- scroll -->
+        <div class="scr" style="flex:1;overflow-y:auto;padding:8px 22px 24px;">
+          <!-- greeting -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 4px 0;">
+            <div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;color:rgba(22,35,43,0.5);text-transform:lowercase;">agosto 2026</div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:24px;letter-spacing:-0.02em;margin-top:2px;">Hola, Ana</div>
+            </div>
+            <div style="width:40px;height:40px;border-radius:999px;background:#fff;border:1px solid rgba(22,35,43,0.10);display:flex;align-items:center;justify-content:center;position:relative;"><i data-lucide="bell" style="width:19px;height:19px;color:#16232B;"></i><span style="position:absolute;top:9px;right:10px;width:7px;height:7px;border-radius:999px;background:#1D9E75;border:1.5px solid #fff;"></span></div>
+          </div>
+
+          <!-- hero total -->
+          <div style="margin-top:18px;border-radius:22px;background:linear-gradient(135deg,#16232B 0%,#0F4A3C 100%);box-shadow:0 12px 28px rgba(22,35,43,0.22);padding:20px 22px;color:#F5F4EF;">
+            <div style="font-size:13px;color:rgba(245,244,239,0.7);">Disponible este mes</div>
+            <div style="display:flex;align-items:baseline;gap:8px;margin-top:2px;">
+              <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:44px;letter-spacing:-0.03em;line-height:1;">$3,580</span>
+            </div>
+            <div style="font-size:12.5px;color:rgba(245,244,239,0.6);margin-top:8px;">de $21,500 &middot; aportan tú y Marifer</div>
+            <div style="height:1px;background:rgba(245,244,239,0.14);margin:16px 0 14px;"></div>
+            <div style="display:flex;gap:10px;">
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px;"><span style="font-size:11.5px;color:rgba(245,244,239,0.6);">MSI este mes</span><span style="font-size:16px;font-weight:600;">$2,340</span></div>
+              <div style="width:1px;background:rgba(245,244,239,0.14);"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px;"><span style="font-size:11.5px;color:rgba(245,244,239,0.6);">Ingreso comprometido</span><span style="font-size:16px;font-weight:600;color:#5FD3A6;">18% <span style="font-size:11px;font-weight:500;color:rgba(245,244,239,0.5);">&middot; sano</span></span></div>
+            </div>
+          </div>
+
+          <!-- section label -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin:24px 4px 12px;">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;color:rgba(22,35,43,0.5);">&lt;rubros · agosto&gt;</span>
+            <span style="font-size:12.5px;color:#0F6E56;font-weight:500;">Ver todos</span>
+          </div>
+
+          <!-- rubro list -->
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <!-- row -->
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:18px;padding:14px 16px;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:40px;height:40px;border-radius:12px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i data-lucide="shopping-cart" style="width:20px;height:20px;color:#0F6E56;"></i></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14.5px;font-weight:600;">Súper y despensa</div>
+                  <div style="font-size:12px;color:rgba(22,35,43,0.5);margin-top:1px;">$4,820 de $7,000</div>
+                </div>
+                <div style="text-align:right;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;">$2,180</div><div style="font-size:10.5px;color:rgba(22,35,43,0.45);">disponible</div></div>
+              </div>
+              <div style="height:6px;border-radius:999px;background:#E7E4DB;margin-top:12px;overflow:hidden;"><div style="width:69%;height:100%;background:#0F6E56;border-radius:999px;"></div></div>
+            </div>
+
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:18px;padding:14px 16px;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:40px;height:40px;border-radius:12px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i data-lucide="utensils" style="width:20px;height:20px;color:#0F6E56;"></i></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14.5px;font-weight:600;">Comida fuera</div>
+                  <div style="font-size:12px;color:rgba(22,35,43,0.5);margin-top:1px;">$1,940 de $2,500</div>
+                </div>
+                <div style="text-align:right;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;">$560</div><div style="font-size:10.5px;color:rgba(22,35,43,0.45);">disponible</div></div>
+              </div>
+              <div style="height:6px;border-radius:999px;background:#E7E4DB;margin-top:12px;overflow:hidden;"><div style="width:78%;height:100%;background:#0F6E56;border-radius:999px;"></div></div>
+            </div>
+
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:18px;padding:14px 16px;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:40px;height:40px;border-radius:12px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i data-lucide="car-front" style="width:20px;height:20px;color:#0F6E56;"></i></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14.5px;font-weight:600;">Transporte</div>
+                  <div style="font-size:12px;color:rgba(22,35,43,0.5);margin-top:1px;">$1,210 de $1,800</div>
+                </div>
+                <div style="text-align:right;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;">$590</div><div style="font-size:10.5px;color:rgba(22,35,43,0.45);">disponible</div></div>
+              </div>
+              <div style="height:6px;border-radius:999px;background:#E7E4DB;margin-top:12px;overflow:hidden;"><div style="width:67%;height:100%;background:#0F6E56;border-radius:999px;"></div></div>
+            </div>
+
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:18px;padding:14px 16px;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:40px;height:40px;border-radius:12px;background:rgba(154,107,21,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i data-lucide="house" style="width:20px;height:20px;color:#9A6B15;"></i></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14.5px;font-weight:600;">Casa y servicios</div>
+                  <div style="font-size:12px;color:#9A6B15;margin-top:1px;">$8,600 de $9,000 &middot; ajustado</div>
+                </div>
+                <div style="text-align:right;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;">$400</div><div style="font-size:10.5px;color:rgba(22,35,43,0.45);">disponible</div></div>
+              </div>
+              <div style="height:6px;border-radius:999px;background:#E7E4DB;margin-top:12px;overflow:hidden;"><div style="width:96%;height:100%;background:#9A6B15;border-radius:999px;"></div></div>
+            </div>
+
+            <div style="background:#fff;border:1px solid rgba(164,50,38,0.25);border-radius:18px;padding:14px 16px;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:40px;height:40px;border-radius:12px;background:rgba(164,50,38,0.10);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i data-lucide="tv" style="width:20px;height:20px;color:#A43226;"></i></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14.5px;font-weight:600;">Entretenimiento</div>
+                  <div style="font-size:12px;color:#A43226;margin-top:1px;">$1,350 de $1,200 &middot; sobrepasado</div>
+                </div>
+                <div style="text-align:right;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;color:#A43226;">−$150</div><div style="font-size:10.5px;color:rgba(22,35,43,0.45);">disponible</div></div>
+              </div>
+              <div style="height:6px;border-radius:999px;background:#E7E4DB;margin-top:12px;overflow:hidden;"><div style="width:100%;height:100%;background:#A43226;border-radius:999px;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- bottom nav A -->
+        <div style="flex-shrink:0;height:80px;background:#fff;border-top:1px solid rgba(22,35,43,0.08);display:flex;align-items:center;justify-content:space-around;padding:0 14px 18px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#16232B;"><i data-lucide="house" style="width:22px;height:22px;"></i><span style="font-size:10px;font-weight:600;">Inicio</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(22,35,43,0.4);"><i data-lucide="receipt-text" style="width:22px;height:22px;"></i><span style="font-size:10px;">Gastos</span></div>
+          <div style="width:54px;height:54px;border-radius:999px;background:#16232B;display:flex;align-items:center;justify-content:center;margin-top:-24px;box-shadow:0 8px 20px rgba(22,35,43,0.30);"><i data-lucide="plus" style="width:26px;height:26px;color:#F5F4EF;"></i></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(22,35,43,0.4);"><i data-lucide="credit-card" style="width:22px;height:22px;"></i><span style="font-size:10px;">MSI</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(22,35,43,0.4);"><i data-lucide="piggy-bank" style="width:22px;height:22px;"></i><span style="font-size:10px;">Ahorro</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== OPTION 1B ===================== -->
+    <div id="1b" style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;height:26px;padding:0 12px;border-radius:999px;background:#16232B;color:#F5F4EF;font-family:'JetBrains Mono',monospace;font-size:12px;">1b</span>
+        <span style="font-size:14px;font-weight:600;color:#16232B;">Panel con hero &middot; salud arriba, rubros en cuadrícula</span>
+      </div>
+
+      <div style="width:390px;height:844px;background:#F5F4EF;border-radius:44px;box-shadow:0 2px 4px rgba(22,35,43,0.06),0 24px 60px rgba(22,35,43,0.20);border:1px solid rgba(22,35,43,0.10);overflow:hidden;display:flex;flex-direction:column;color:#16232B;">
+        <div style="height:52px;padding:16px 30px 0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+          <span style="font-size:14px;font-weight:600;">9:41</span>
+          <div style="display:flex;gap:7px;align-items:center;"><i data-lucide="signal" style="width:16px;height:16px;"></i><i data-lucide="wifi" style="width:16px;height:16px;"></i><i data-lucide="battery-full" style="width:20px;height:20px;"></i></div>
+        </div>
+        <div class="scr" style="flex:1;overflow-y:auto;padding:8px 22px 24px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px 0;">
+            <div style="display:flex;align-items:center;gap:11px;">
+              <div style="width:38px;height:38px;border-radius:999px;background:#16232B;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;color:#F5F4EF;font-size:15px;">A</div>
+              <div><div style="font-size:15px;font-weight:600;line-height:1.1;">Hola, Ana</div><div style="font-size:11.5px;color:rgba(22,35,43,0.5);">agosto 2026</div></div>
+            </div>
+            <div style="width:40px;height:40px;border-radius:999px;background:#fff;border:1px solid rgba(22,35,43,0.10);display:flex;align-items:center;justify-content:center;position:relative;"><i data-lucide="bell" style="width:19px;height:19px;"></i><span style="position:absolute;top:9px;right:10px;width:7px;height:7px;border-radius:999px;background:#1D9E75;border:1.5px solid #fff;"></span></div>
+          </div>
+
+          <!-- hero gradient -->
+          <div style="margin-top:16px;border-radius:24px;padding:22px 22px 20px;background:linear-gradient(135deg,#16232B 0%,#0F4A3C 100%);color:#F5F4EF;box-shadow:0 12px 28px rgba(22,35,43,0.22);">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.06em;color:rgba(245,244,239,0.6);">&lt;salud financiera · agosto&gt;</span>
+              <i data-lucide="arrow-up-right" style="width:18px;height:18px;color:rgba(245,244,239,0.7);"></i>
+            </div>
+            <div style="font-size:12.5px;color:rgba(245,244,239,0.7);margin-top:14px;">Disponible este mes</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:46px;letter-spacing:-0.03em;line-height:1;margin-top:2px;">$3,580</div>
+            <div style="display:flex;gap:8px;margin-top:18px;">
+              <div style="flex:1;background:rgba(245,244,239,0.08);border:1px solid rgba(245,244,239,0.12);border-radius:14px;padding:10px 12px;"><div style="font-size:10.5px;color:rgba(245,244,239,0.6);">MSI / mes</div><div style="font-size:15px;font-weight:600;margin-top:3px;">$2,340</div></div>
+              <div style="flex:1;background:rgba(245,244,239,0.08);border:1px solid rgba(245,244,239,0.12);border-radius:14px;padding:10px 12px;"><div style="font-size:10.5px;color:rgba(245,244,239,0.6);">Guardrail</div><div style="font-size:15px;font-weight:600;margin-top:3px;color:#5FD3A6;">18%</div></div>
+              <div style="flex:1;background:rgba(245,244,239,0.08);border:1px solid rgba(245,244,239,0.12);border-radius:14px;padding:10px 12px;"><div style="font-size:10.5px;color:rgba(245,244,239,0.6);">Ahorro</div><div style="font-size:15px;font-weight:600;margin-top:3px;">22%</div></div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin:22px 4px 12px;">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;color:rgba(22,35,43,0.5);">&lt;rubros · disponible&gt;</span>
+            <span style="font-size:12.5px;color:#0F6E56;font-weight:500;">Ver todos</span>
+          </div>
+
+          <!-- grid -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:18px;padding:14px;">
+              <div style="width:36px;height:36px;border-radius:11px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;"><i data-lucide="shopping-cart" style="width:18px;height:18px;color:#0F6E56;"></i></div>
+              <div style="font-size:13px;font-weight:600;margin-top:11px;">Súper</div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;margin-top:2px;letter-spacing:-0.02em;">$2,180</div>
+              <div style="font-size:11px;color:rgba(22,35,43,0.5);margin-top:2px;">$4,820 / $7,000</div>
+              <div style="height:5px;border-radius:999px;background:#E7E4DB;margin-top:9px;overflow:hidden;"><div style="width:69%;height:100%;background:#0F6E56;"></div></div>
+            </div>
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:18px;padding:14px;">
+              <div style="width:36px;height:36px;border-radius:11px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;"><i data-lucide="utensils" style="width:18px;height:18px;color:#0F6E56;"></i></div>
+              <div style="font-size:13px;font-weight:600;margin-top:11px;">Comida fuera</div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;margin-top:2px;letter-spacing:-0.02em;">$560</div>
+              <div style="font-size:11px;color:rgba(22,35,43,0.5);margin-top:2px;">$1,940 / $2,500</div>
+              <div style="height:5px;border-radius:999px;background:#E7E4DB;margin-top:9px;overflow:hidden;"><div style="width:78%;height:100%;background:#0F6E56;"></div></div>
+            </div>
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:18px;padding:14px;">
+              <div style="width:36px;height:36px;border-radius:11px;background:rgba(29,158,117,0.12);display:flex;align-items:center;justify-content:center;"><i data-lucide="car-front" style="width:18px;height:18px;color:#0F6E56;"></i></div>
+              <div style="font-size:13px;font-weight:600;margin-top:11px;">Transporte</div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;margin-top:2px;letter-spacing:-0.02em;">$590</div>
+              <div style="font-size:11px;color:rgba(22,35,43,0.5);margin-top:2px;">$1,210 / $1,800</div>
+              <div style="height:5px;border-radius:999px;background:#E7E4DB;margin-top:9px;overflow:hidden;"><div style="width:67%;height:100%;background:#0F6E56;"></div></div>
+            </div>
+            <div style="background:#fff;border:1px solid rgba(22,35,43,0.08);border-radius:18px;padding:14px;">
+              <div style="width:36px;height:36px;border-radius:11px;background:rgba(154,107,21,0.12);display:flex;align-items:center;justify-content:center;"><i data-lucide="house" style="width:18px;height:18px;color:#9A6B15;"></i></div>
+              <div style="font-size:13px;font-weight:600;margin-top:11px;">Casa</div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;margin-top:2px;letter-spacing:-0.02em;">$400</div>
+              <div style="font-size:11px;color:#9A6B15;margin-top:2px;">$8,600 / $9,000</div>
+              <div style="height:5px;border-radius:999px;background:#E7E4DB;margin-top:9px;overflow:hidden;"><div style="width:96%;height:100%;background:#9A6B15;"></div></div>
+            </div>
+            <div style="grid-column:span 2;background:#fff;border:1px solid rgba(164,50,38,0.25);border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+              <div style="width:38px;height:38px;border-radius:11px;background:rgba(164,50,38,0.10);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i data-lucide="tv" style="width:19px;height:19px;color:#A43226;"></i></div>
+              <div style="flex:1;"><div style="font-size:13.5px;font-weight:600;">Entretenimiento</div><div style="font-size:11.5px;color:#A43226;margin-top:1px;">$1,350 / $1,200 &middot; sobrepasado</div></div>
+              <div style="text-align:right;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;color:#A43226;">−$150</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex-shrink:0;height:80px;background:#fff;border-top:1px solid rgba(22,35,43,0.08);display:flex;align-items:center;justify-content:space-around;padding:0 14px 18px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#16232B;"><i data-lucide="house" style="width:22px;height:22px;"></i><span style="font-size:10px;font-weight:600;">Inicio</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(22,35,43,0.4);"><i data-lucide="receipt-text" style="width:22px;height:22px;"></i><span style="font-size:10px;">Gastos</span></div>
+          <div style="width:54px;height:54px;border-radius:999px;background:#16232B;display:flex;align-items:center;justify-content:center;margin-top:-24px;box-shadow:0 8px 20px rgba(22,35,43,0.30);"><i data-lucide="plus" style="width:26px;height:26px;color:#F5F4EF;"></i></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(22,35,43,0.4);"><i data-lucide="credit-card" style="width:22px;height:22px;"></i><span style="font-size:10px;">MSI</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:rgba(22,35,43,0.4);"><i data-lucide="piggy-bank" style="width:22px;height:22px;"></i><span style="font-size:10px;">Ahorro</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){ this.renderIcons(); }
+  componentDidUpdate(){ this.renderIcons(); }
+  renderIcons(){
+    const go = () => {
+      if (window.lucide && window.lucide.createIcons) { window.lucide.createIcons(); }
+      else { setTimeout(go, 120); }
+    };
+    go();
+  }
+  renderVals(){ return {}; }
+}
+</script>
+</body>
+</html>

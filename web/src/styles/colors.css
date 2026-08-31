@@ -1,0 +1,52 @@
+/* Devotte color tokens — from Manual de identidad v1.0 (Julio 2026)
+   Proportion rule: cream ~55% · navy ~33% · deep teal ~9% · signal teal ~3% */
+
+:root {
+  /* Base palette */
+  --navy: #16232B;          /* Navy Devotte — primary: text, dark backgrounds, the icon */
+  --teal: #1D9E75;          /* Teal señal — accents ONLY: logo dot, small details. Never large backgrounds */
+  --teal-deep: #0F6E56;     /* Teal profundo — accent on light backgrounds: links, text accents */
+  --cream: #F5F4EF;         /* Crema — default light background instead of pure white */
+
+  /* Derived tints (navy/cream mixes for UI chrome — not brand colors) */
+  --navy-80: rgba(22, 35, 43, 0.8);
+  --navy-60: rgba(22, 35, 43, 0.6);
+  --navy-40: rgba(22, 35, 43, 0.4);
+  --navy-16: rgba(22, 35, 43, 0.16);
+  --navy-08: rgba(22, 35, 43, 0.08);
+  --teal-12: rgba(29, 158, 117, 0.12);
+  --cream-80: rgba(245, 244, 239, 0.8);
+  --cream-60: rgba(245, 244, 239, 0.6);
+  --cream-16: rgba(245, 244, 239, 0.16);
+  --cream-08: rgba(245, 244, 239, 0.08);
+  --white: #FFFFFF;         /* documents (quotes/invoices) may use pure white */
+
+  /* Semantic — light surfaces (default) */
+  --surface-page: var(--cream);
+  --surface-card: var(--white);
+  --surface-sunken: #ECEBE4;
+  --text-body: var(--navy);
+  --text-muted: var(--navy-60);
+  --text-faint: var(--navy-40);
+  --text-accent: var(--teal-deep);  /* links, accent text on light bg */
+  --text-link: var(--teal-deep);
+  --border-default: var(--navy-16);
+  --border-subtle: var(--navy-08);
+  --focus-ring: var(--teal-deep);
+
+  /* Semantic — on dark (navy) surfaces */
+  --on-dark-text: var(--cream);
+  --on-dark-muted: var(--cream-60);
+  --on-dark-accent: var(--teal);    /* signal teal reads well on navy */
+  --on-dark-border: var(--cream-16);
+
+  /* Gradients — max ONE per composition; never place the logo on a gradient */
+  --gradient-deep: linear-gradient(135deg, #16232B 0%, #0F4A3C 100%); /* @kind color */ /* hero, covers, closings */
+  --gradient-signal: linear-gradient(135deg, #1D9E75 0%, #0F6E56 100%); /* @kind color */ /* small graphic elements only */
+  --gradient-mist: linear-gradient(180deg, #F5F4EF 0%, #E2EDE7 100%); /* @kind color */ /* subtle light sections; only gradient that admits long text */
+
+  /* Semantic status (UI apps — derived, keep quiet) */
+  --status-ok: var(--teal-deep);
+  --status-warn: #9A6B15;
+  --status-error: #A43226;
+}
