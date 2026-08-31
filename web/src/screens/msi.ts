@@ -25,7 +25,7 @@ export async function renderMSI(root: HTMLElement) {
     .map(
       (m) => `
       <div class="mes-row">
-        <div><div class="nombre">${esc(mesLargo(m.mes))}</div><div class="detalle">${m.por_tarjeta.map((t) => `${esc(t.nombre)} ${money(t.monto)}`).join(' · ')}</div></div>
+        <div class="info"><div class="nombre">${esc(mesLargo(m.mes))}</div><div class="detalle">${m.por_tarjeta.map((t) => `${esc(t.nombre)} ${money(t.monto)}`).join(' · ')}</div></div>
         <span class="monto">${money(m.total)}</span>
       </div>`
     )

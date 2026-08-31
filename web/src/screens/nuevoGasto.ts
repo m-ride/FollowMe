@@ -40,12 +40,14 @@ export async function renderNuevoGasto(root: HTMLElement) {
             rubroId ? `Disponible en ${esc(rubrosGasto[0].nombre)}: ${money(disponibleDe(rubroId) ?? 0)}` : 'Sin rubros de gasto todavía'
           }</div>
         </div>
-        <div class="campo select-wrap">
+        <div class="campo">
           <div class="k">Método de pago</div>
-          <select id="metodo" required>
-            ${metodos.map((m) => `<option value="${m.id}">${esc(m.nombre)}</option>`).join('')}
-          </select>
-          <i data-lucide="chevron-down" style="width:18px;height:18px;"></i>
+          <div class="select-wrap">
+            <select id="metodo" required>
+              ${metodos.map((m) => `<option value="${m.id}">${esc(m.nombre)}</option>`).join('')}
+            </select>
+            <i data-lucide="chevron-down" style="width:18px;height:18px;"></i>
+          </div>
         </div>
         <div class="campo">
           <div class="k">Fecha</div>

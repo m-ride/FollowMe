@@ -8,7 +8,8 @@ const periodoActual = () => new Date().toISOString().slice(0, 7);
 // Guardrail del plan: "no superar 20-30% de ingreso comprometido en MSI".
 const colorGuardrail = (pct: number) => (pct >= 30 ? 'var(--status-error)' : pct >= 20 ? 'var(--status-warn)' : 'var(--status-ok)');
 
-export async function renderSalud(root: HTMLElement) {
+export async function renderSalud(root: HTMLElement, params?: URLSearchParams) {
+  const abrirFormulario = params?.get('nuevo') === '1';
   root.innerHTML = `<div class="screen">${topbarBack('Salud financiera', '/')}<div class="placeholder">Cargando…</div></div>`;
 
   const [resumen, ingresos] = await Promise.all([getResumen(), getIngresos()]);
@@ -97,7 +98,7 @@ export async function renderSalud(root: HTMLElement) {
       <button type="button" id="toggle-ingreso" class="btn-fantasma" style="margin-top:var(--space-4)">
         <i data-lucide="plus" style="width:18px;height:18px"></i>Registrar ingreso
       </button>
-      <div id="form-ingreso" class="inline-form" hidden>
+      <div id="form-ingreso" class="inline-form" ${abrirFormulario ? '' : 'hidden'}>
         <form id="fi">
           <div class="campo"><div class="k">Fuente</div><input id="fuente" type="text" placeholder="Ej. Salario, Freelance" required /></div>
           <div class="campo"><div class="k">Monto</div><input id="monto-ingreso" type="number" step="0.01" min="0.01" inputmode="decimal" placeholder="0.00" required /></div>
@@ -108,6 +109,10 @@ export async function renderSalud(root: HTMLElement) {
     </div>
   `;
   refreshIcons();
+  if (abrirFormulario) {
+    root.querySelector('#form-ingreso')!.scrollIntoView({ block: 'center' });
+    root.querySelector<HTMLInputElement>('#fuente')!.focus();
+  }
 
   const formWrap = root.querySelector<HTMLDivElement>('#form-ingreso')!;
   root.querySelector('#toggle-ingreso')!.addEventListener('click', () => {

@@ -49,15 +49,19 @@ export async function renderNuevaCompraMSI(root: HTMLElement) {
       <div class="screen">
         ${topbarBack('Compra a meses', '/msi')}
         <form id="f">
-          <div class="campo select-wrap">
+          <div class="campo">
             <div class="k">Tarjeta</div>
-            <select id="tarjeta" required>${tarjetas.map((t) => `<option value="${t.id}">${esc(t.nombre)}</option>`).join('')}</select>
-            <i data-lucide="chevron-down" style="width:18px;height:18px;"></i>
+            <div class="select-wrap">
+              <select id="tarjeta" required>${tarjetas.map((t) => `<option value="${t.id}">${esc(t.nombre)}</option>`).join('')}</select>
+              <i data-lucide="chevron-down" style="width:18px;height:18px;"></i>
+            </div>
           </div>
-          <div class="campo select-wrap">
+          <div class="campo">
             <div class="k">Rubro</div>
-            <select id="rubro" required>${rubrosGasto.map((r) => `<option value="${r.id}">${esc(r.nombre)}</option>`).join('')}</select>
-            <i data-lucide="chevron-down" style="width:18px;height:18px;"></i>
+            <div class="select-wrap">
+              <select id="rubro" required>${rubrosGasto.map((r) => `<option value="${r.id}">${esc(r.nombre)}</option>`).join('')}</select>
+              <i data-lucide="chevron-down" style="width:18px;height:18px;"></i>
+            </div>
           </div>
           <div class="campo">
             <div class="k">Descripción</div>

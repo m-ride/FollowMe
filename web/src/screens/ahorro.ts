@@ -60,10 +60,12 @@ export async function renderAhorro(root: HTMLElement) {
       </button>
       <div id="form-aportar" class="inline-form" hidden>
         <form id="f">
-          <div class="campo select-wrap">
+          <div class="campo">
             <div class="k">Bolsa</div>
-            <select id="bolsa" required>${bolsas.map((b) => `<option value="${b.id}">${esc(b.nombre)}</option>`).join('')}</select>
-            <i data-lucide="chevron-down" style="width:18px;height:18px;"></i>
+            <div class="select-wrap">
+              <select id="bolsa" required>${bolsas.map((b) => `<option value="${b.id}">${esc(b.nombre)}</option>`).join('')}</select>
+              <i data-lucide="chevron-down" style="width:18px;height:18px;"></i>
+            </div>
           </div>
           <div class="campo">
             <div class="k">Fuente</div>
