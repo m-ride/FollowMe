@@ -12,6 +12,7 @@ import { renderMSI } from './screens/msi';
 import { renderAhorro } from './screens/ahorro';
 import { renderMetodos } from './screens/metodos';
 import { renderGastos } from './screens/gastos';
+import { renderSalud } from './screens/salud';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 
@@ -27,6 +28,7 @@ function iniciar() {
       { path: '/msi/nuevo', render: renderNuevaCompraMSI },
       { path: '/ahorro', render: renderAhorro },
       { path: '/metodos', render: renderMetodos },
+      { path: '/salud', render: renderSalud },
     ],
     app,
     refreshIcons

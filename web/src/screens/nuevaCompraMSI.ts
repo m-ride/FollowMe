@@ -1,4 +1,4 @@
-import { getMetodos, getRubros, crearCompraMSI, type CompraMSI } from '../api';
+import { getMetodos, getRubros, getResumen, crearCompraMSI, type CompraMSI } from '../api';
 import { money, esc, mesCorto } from '../format';
 import { topbarBack } from '../chrome';
 import { refreshIcons } from '../icons';
@@ -9,7 +9,7 @@ const hoy = () => new Date().toISOString().slice(0, 10);
 export async function renderNuevaCompraMSI(root: HTMLElement) {
   root.innerHTML = `<div class="screen">${topbarBack('Compra a meses', '/msi')}<div class="placeholder">Cargando…</div></div>`;
 
-  const [metodos, rubros] = await Promise.all([getMetodos(), getRubros()]);
+  const [metodos, rubros, resumen] = await Promise.all([getMetodos(), getRubros(), getResumen()]);
   const tarjetas = metodos.filter((m) => m.tipo === 'credito');
   const rubrosGasto = rubros.filter((r) => r.tipo === 'gasto');
   let plazo = 12;
@@ -19,15 +19,28 @@ export async function renderNuevaCompraMSI(root: HTMLElement) {
     return;
   }
 
+  // Guardrail del plan: "no superar 20-30% de ingreso comprometido en MSI" — estimado
+  // con la cuota mensual de ESTA compra sumada al compromiso del mes actual.
+  const ingresoMensual = resumen.ingreso_total;
+  const compromisoActual = resumen.compromiso_msi.meses.find((m) => m.mes === resumen.periodo)?.total ?? 0;
+
   const previa = (montoStr: string) => {
     const total = Math.round(parseFloat(montoStr || '0') * 100);
     if (!total) return '';
     const base = Math.floor(total / plazo);
+    let guardrail = '';
+    if (ingresoMensual > 0) {
+      const pctNuevo = ((compromisoActual + base) / ingresoMensual) * 100;
+      const color = pctNuevo >= 30 ? 'var(--status-error)' : pctNuevo >= 20 ? 'var(--status-warn)' : 'var(--status-ok)';
+      const aviso = pctNuevo >= 20 ? `<div class="chico" style="margin-top:8px;color:${color}">Esto dejaría el ${pctNuevo.toFixed(0)}% de tu ingreso comprometido en MSI — el plan sugiere no pasar de 20-30%.</div>` : '';
+      guardrail = `<div class="fila-kv" style="margin-top:10px"><span class="k">Ingreso comprometido en MSI (con esta compra)</span><span class="v" style="color:${color}">${pctNuevo.toFixed(0)}%</span></div>${aviso}`;
+    }
     return `<div class="stat-box" style="margin-top:var(--space-4)">
       <div class="label" style="color:var(--text-accent)">&lt;cronograma estimado&gt;</div>
       <div class="fila-kv" style="align-items:baseline">
         <span class="k">${plazo} cuotas de</span><span style="font-family:var(--font-display);font-weight:700;font-size:24px">~${money(base)}</span>
       </div>
+      ${guardrail}
     </div>`;
   };
 

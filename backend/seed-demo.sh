@@ -17,12 +17,12 @@ BANORTE=$(post metodos-pago '{"nombre":"Banorte Oro","tipo":"credito","limite":3
 DEBITO=$(post metodos-pago '{"nombre":"Débito Nu","tipo":"debito"}' | jq .id)
 EFECTIVO=$(post metodos-pago '{"nombre":"Efectivo","tipo":"efectivo"}' | jq .id)
 
-echo "Rubros de gasto..."
-SUPER=$(post rubros '{"nombre":"Súper y despensa","tipo":"gasto"}' | jq .id)
-COMIDA=$(post rubros '{"nombre":"Comida fuera","tipo":"gasto"}' | jq .id)
-TRANSPORTE=$(post rubros '{"nombre":"Transporte","tipo":"gasto"}' | jq .id)
-CASA=$(post rubros '{"nombre":"Casa y servicios","tipo":"gasto"}' | jq .id)
-ENTRETENIMIENTO=$(post rubros '{"nombre":"Entretenimiento","tipo":"gasto"}' | jq .id)
+echo "Rubros de gasto (con clasificación fijo/discrecional, Fase 2)..."
+SUPER=$(post rubros '{"nombre":"Súper y despensa","tipo":"gasto","clasificacion":"fijo"}' | jq .id)
+COMIDA=$(post rubros '{"nombre":"Comida fuera","tipo":"gasto","clasificacion":"discrecional"}' | jq .id)
+TRANSPORTE=$(post rubros '{"nombre":"Transporte","tipo":"gasto","clasificacion":"fijo"}' | jq .id)
+CASA=$(post rubros '{"nombre":"Casa y servicios","tipo":"gasto","clasificacion":"fijo"}' | jq .id)
+ENTRETENIMIENTO=$(post rubros '{"nombre":"Entretenimiento","tipo":"gasto","clasificacion":"discrecional"}' | jq .id)
 
 echo "Bolsas de ahorro..."
 EMERGENCIA=$(post rubros '{"nombre":"Fondo de emergencia","tipo":"ahorro","monto_objetivo":6000000}' | jq .id)
@@ -54,6 +54,10 @@ post gastos "{\"rubro_id\":$COMIDA,\"metodo_pago_id\":$BBVA,\"monto\":45000,\"fe
 post gastos "{\"rubro_id\":$TRANSPORTE,\"metodo_pago_id\":$DEBITO,\"monto\":80000,\"fecha\":\"$HOY\",\"descripcion\":\"Gasolina\"}" >/dev/null
 post gastos "{\"rubro_id\":$CASA,\"metodo_pago_id\":$DEBITO,\"monto\":650000,\"fecha\":\"$HOY\",\"descripcion\":\"Renta\"}" >/dev/null
 post gastos "{\"rubro_id\":$ENTRETENIMIENTO,\"metodo_pago_id\":$BANORTE,\"monto\":135000,\"fecha\":\"$HOY\",\"descripcion\":\"Streaming + cine\"}" >/dev/null
+
+echo "Ingresos del mes (Fase 2)..."
+post ingresos "{\"fuente\":\"Salario\",\"monto\":4500000,\"periodo\":\"$MES\"}" >/dev/null
+post ingresos "{\"fuente\":\"Freelance\",\"monto\":800000,\"periodo\":\"$MES\"}" >/dev/null
 
 echo "Compras a meses..."
 post compras-msi "{\"tarjeta_id\":$BBVA,\"rubro_id\":$CASA,\"descripcion\":\"Refrigerador Mabe\",\"monto_total\":1200000,\"plazo_meses\":12,\"fecha_compra\":\"$HOY\"}" >/dev/null

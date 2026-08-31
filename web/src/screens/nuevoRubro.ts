@@ -4,6 +4,7 @@ import { refreshIcons } from '../icons';
 
 export async function renderNuevoRubro(root: HTMLElement, params: URLSearchParams) {
   let tipo: Rubro['tipo'] = params.get('tipo') === 'ahorro' ? 'ahorro' : 'gasto';
+  let clasificacion: Rubro['clasificacion'] | undefined;
   const volverA = tipo === 'ahorro' ? '/ahorro' : '/';
 
   const render = () => {
@@ -28,6 +29,15 @@ export async function renderNuevoRubro(root: HTMLElement, params: URLSearchParam
               <input id="meta" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0.00" />
             </div>
           </div>
+          <div id="campo-clasificacion" ${tipo === 'gasto' ? '' : 'hidden'}>
+            <div class="campo">
+              <div class="k">Clasificación (opcional)</div>
+              <div class="pills" id="pills-clasif">
+                <span class="pill ${clasificacion === 'fijo' ? 'activa' : ''}" data-c="fijo">Fijo</span>
+                <span class="pill ${clasificacion === 'discrecional' ? 'activa' : ''}" data-c="discrecional">Discrecional</span>
+              </div>
+            </div>
+          </div>
           <div class="error-msg" id="error" hidden></div>
         </form>
       </div>
@@ -41,6 +51,13 @@ export async function renderNuevoRubro(root: HTMLElement, params: URLSearchParam
       const p = (e.target as HTMLElement).closest<HTMLElement>('.pill');
       if (!p) return;
       tipo = p.dataset.t as Rubro['tipo'];
+      render();
+    });
+    root.querySelector('#pills-clasif')?.addEventListener('click', (e) => {
+      const p = (e.target as HTMLElement).closest<HTMLElement>('.pill');
+      if (!p) return;
+      const c = p.dataset.c as Rubro['clasificacion'];
+      clasificacion = clasificacion === c ? undefined : c; // click de nuevo = quitar la clasificación
       render();
     });
 
@@ -60,6 +77,7 @@ export async function renderNuevoRubro(root: HTMLElement, params: URLSearchParam
           nombre,
           tipo,
           ...(tipo === 'ahorro' && metaStr ? { monto_objetivo: Math.round(parseFloat(metaStr) * 100) } : {}),
+          ...(tipo === 'gasto' && clasificacion ? { clasificacion } : {}),
         });
         location.hash = tipo === 'ahorro' ? '#/ahorro' : '#/';
       } catch (err) {

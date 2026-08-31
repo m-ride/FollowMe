@@ -53,19 +53,27 @@ export async function renderHome(root: HTMLElement) {
           <div class="titulo">Hola, ${esc(NOMBRE)}</div>
         </div>
         <div style="display:flex;gap:8px">
+          <a href="#/salud" class="icon-btn"><i data-lucide="heart-pulse" style="width:18px;height:18px;"></i></a>
           <a href="#/metodos" class="icon-btn"><i data-lucide="credit-card" style="width:18px;height:18px;"></i></a>
           <div class="bell"><i data-lucide="bell" style="width:19px;height:19px;"></i></div>
         </div>
       </div>
 
-      <div class="hero-card">
-        <div class="etiqueta">Disponible este mes</div>
-        <div class="monto">${money(totalDisponible)}</div>
-        <div class="detalle">de ${money(totalAportado)} · aportan ${esc(NOMBRE)} y ${esc(PAREJA_NOMBRE)}</div>
-        <div class="stats">
-          <div class="stat"><div class="k">MSI este mes</div><div class="v">${money(msiEsteMes)}</div></div>
+      <a href="#/salud" style="text-decoration:none;color:inherit;display:block">
+        <div class="hero-card">
+          <div class="etiqueta">Disponible este mes</div>
+          <div class="monto">${money(totalDisponible)}</div>
+          <div class="detalle">de ${money(totalAportado)} · aportan ${esc(NOMBRE)} y ${esc(PAREJA_NOMBRE)}</div>
+          <div class="stats">
+            <div class="stat"><div class="k">MSI este mes</div><div class="v">${money(msiEsteMes)}</div></div>
+            ${
+              r.salud.pct_ingreso_comprometido_msi !== undefined
+                ? `<div class="stat"><div class="k">Ingreso comprometido</div><div class="v" style="color:${r.salud.pct_ingreso_comprometido_msi >= 30 ? '#E8867A' : 'inherit'}">${r.salud.pct_ingreso_comprometido_msi.toFixed(0)}%</div></div>`
+                : ''
+            }
+          </div>
         </div>
-      </div>
+      </a>
 
       <div class="seccion-label"><span>&lt;rubros · ${r.periodo}&gt;</span><a href="#/rubro/nuevo" style="display:flex;align-items:center;gap:4px;color:var(--text-accent);font-size:12.5px;font-weight:500;text-decoration:none"><i data-lucide="plus" style="width:14px;height:14px;"></i>Nueva categoría</a></div>
       <div class="rubro-list">${rubros || '<div class="placeholder">Sin rubros todavía</div>'}</div>

@@ -47,6 +47,9 @@ func main() {
 	mux.HandleFunc("PATCH /api/rubros/{id}", actualizarRubro)
 	mux.HandleFunc("POST /api/aportaciones", crearAportacion)
 	mux.HandleFunc("DELETE /api/aportaciones/{id}", borrarAportacion)
+	mux.HandleFunc("GET /api/ingresos", listIngresos)
+	mux.HandleFunc("POST /api/ingresos", crearIngreso)
+	mux.HandleFunc("DELETE /api/ingresos/{id}", borrarIngreso)
 	mux.HandleFunc("GET /api/gastos", listGastos)
 	mux.HandleFunc("POST /api/gastos", crearGasto)
 	mux.HandleFunc("DELETE /api/gastos/{id}", borrarGasto)
@@ -235,10 +238,11 @@ func listMetodos(w http.ResponseWriter, r *http.Request) {
 // --- rubros -----------------------------------------------------------------
 
 type rubro struct {
-	ID            int64  `json:"id"`
-	Nombre        string `json:"nombre"`
-	Tipo          string `json:"tipo"`
-	MontoObjetivo *int64 `json:"monto_objetivo,omitempty"`
+	ID            int64   `json:"id"`
+	Nombre        string  `json:"nombre"`
+	Tipo          string  `json:"tipo"`
+	MontoObjetivo *int64  `json:"monto_objetivo,omitempty"`
+	Clasificacion *string `json:"clasificacion,omitempty"`
 }
 
 func crearRubro(w http.ResponseWriter, r *http.Request) {
@@ -251,8 +255,8 @@ func crearRubro(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err := db.QueryRow(r.Context(),
-		`INSERT INTO rubro (nombre, tipo, monto_objetivo) VALUES ($1,$2,$3) RETURNING id`,
-		x.Nombre, x.Tipo, x.MontoObjetivo).Scan(&x.ID)
+		`INSERT INTO rubro (nombre, tipo, monto_objetivo, clasificacion) VALUES ($1,$2,$3,$4) RETURNING id`,
+		x.Nombre, x.Tipo, x.MontoObjetivo, x.Clasificacion).Scan(&x.ID)
 	if err != nil {
 		fallo(w, err)
 		return
@@ -264,8 +268,9 @@ func crearRubro(w http.ResponseWriter, r *http.Request) {
 // cambia qué significan sus aportaciones y gastos, no es un simple "editar".
 func actualizarRubro(w http.ResponseWriter, r *http.Request) {
 	body, ok := leer[struct {
-		Nombre        string `json:"nombre"`
-		MontoObjetivo *int64 `json:"monto_objetivo,omitempty"`
+		Nombre        string  `json:"nombre"`
+		MontoObjetivo *int64  `json:"monto_objetivo,omitempty"`
+		Clasificacion *string `json:"clasificacion,omitempty"`
 	}](w, r)
 	if !ok {
 		return
@@ -275,8 +280,8 @@ func actualizarRubro(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tag, err := db.Exec(r.Context(),
-		`UPDATE rubro SET nombre=$1, monto_objetivo=$2 WHERE id=$3`,
-		body.Nombre, body.MontoObjetivo, r.PathValue("id"))
+		`UPDATE rubro SET nombre=$1, monto_objetivo=$2, clasificacion=$3 WHERE id=$4`,
+		body.Nombre, body.MontoObjetivo, body.Clasificacion, r.PathValue("id"))
 	if err != nil {
 		fallo(w, err)
 		return
@@ -290,7 +295,7 @@ func actualizarRubro(w http.ResponseWriter, r *http.Request) {
 
 func listRubros(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query(r.Context(),
-		`SELECT id, nombre, tipo, monto_objetivo FROM rubro ORDER BY id`)
+		`SELECT id, nombre, tipo, monto_objetivo, clasificacion FROM rubro ORDER BY id`)
 	if err != nil {
 		fallo(w, err)
 		return
@@ -299,7 +304,7 @@ func listRubros(w http.ResponseWriter, r *http.Request) {
 	out := []rubro{}
 	for rows.Next() {
 		var x rubro
-		if err := rows.Scan(&x.ID, &x.Nombre, &x.Tipo, &x.MontoObjetivo); err != nil {
+		if err := rows.Scan(&x.ID, &x.Nombre, &x.Tipo, &x.MontoObjetivo, &x.Clasificacion); err != nil {
 			fallo(w, err)
 			return
 		}
@@ -347,6 +352,80 @@ func borrarAportacion(w http.ResponseWriter, r *http.Request) {
 	}
 	if tag.RowsAffected() == 0 {
 		http.Error(w, "aportación no encontrada", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// --- ingresos (Fase 2) -------------------------------------------------------
+
+type ingreso struct {
+	ID      int64  `json:"id"`
+	Fuente  string `json:"fuente"`
+	Monto   int64  `json:"monto"`
+	Periodo string `json:"periodo"`
+}
+
+func crearIngreso(w http.ResponseWriter, r *http.Request) {
+	x, ok := leer[ingreso](w, r)
+	if !ok {
+		return
+	}
+	if x.Fuente == "" {
+		malo(w, errors.New("fuente requerida"))
+		return
+	}
+	if !rePeriodo.MatchString(x.Periodo) {
+		malo(w, errors.New("periodo debe ser YYYY-MM"))
+		return
+	}
+	err := db.QueryRow(r.Context(),
+		`INSERT INTO ingreso (fuente, monto, periodo) VALUES ($1,$2,$3) RETURNING id`,
+		x.Fuente, x.Monto, x.Periodo).Scan(&x.ID)
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	responder(w, x)
+}
+
+func listIngresos(w http.ResponseWriter, r *http.Request) {
+	periodo := r.URL.Query().Get("periodo")
+	if periodo != "" && !rePeriodo.MatchString(periodo) {
+		malo(w, errors.New("periodo debe ser YYYY-MM"))
+		return
+	}
+	rows, err := db.Query(r.Context(),
+		`SELECT id, fuente, monto, periodo FROM ingreso
+		 WHERE $1 = '' OR periodo = $1
+		 ORDER BY periodo DESC, id DESC`, periodo)
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	defer rows.Close()
+	out := []ingreso{}
+	for rows.Next() {
+		var x ingreso
+		if err := rows.Scan(&x.ID, &x.Fuente, &x.Monto, &x.Periodo); err != nil {
+			fallo(w, err)
+			return
+		}
+		out = append(out, x)
+	}
+	responder(w, out)
+}
+
+// borrarIngreso es la manera de corregir un monto mal capturado, igual que
+// borrarAportacion/borrarGasto: es un movimiento, no configuración.
+func borrarIngreso(w http.ResponseWriter, r *http.Request) {
+	tag, err := db.Exec(r.Context(), `DELETE FROM ingreso WHERE id=$1`, r.PathValue("id"))
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		http.Error(w, "ingreso no encontrado", http.StatusNotFound)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

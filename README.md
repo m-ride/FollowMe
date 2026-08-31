@@ -1,4 +1,4 @@
-# Finanzas (Fase 1)
+# Finanzas (Fase 1 + 2)
 
 Go + Postgres en el backend. Todo el dinero se maneja en **centavos** (enteros), nunca
 en flotantes. Frontend: PWA en TypeScript vanilla (sin framework) + Vite.
@@ -16,7 +16,7 @@ bolsas de ahorro con avance, un rubro sobrepasado a propósito) para revisar el
 frontend con algo parecido a uso real, no con los datos desechables de `smoke.sh`.
 Corre `smoke.sh` después y vas a mezclar ambos — si quieres la demo limpia, trunca la
 DB primero (`docker exec followme-db-1 psql -U postgres -d finanzas -c "TRUNCATE
-cuota_msi, compra_msi, gasto, aportacion, rubro, metodo_pago RESTART IDENTITY
+cuota_msi, compra_msi, gasto, aportacion, ingreso, rubro, metodo_pago RESTART IDENTITY
 CASCADE;"`).
 
 ## Frontend — correr en local
@@ -40,17 +40,41 @@ bolsa (`/rubro/nuevo`), aportación desde el detalle de un rubro de gasto, edita
 botón central del nav dejó de ir directo a "nuevo gasto": ahora abre un menú corto con
 las 4 acciones de crear.
 
-Diferencias con el diseño, por datos que el backend de Fase 1 no tiene todavía:
-- **Home**: sin el tile de "% de ingreso comprometido" (necesita `Ingreso`, Fase 2).
+Diferencias con el diseño:
 - **Compra a meses**: se agregó un selector de **Rubro** que el mockup no traía — el
   backend exige `compra_msi.rubro_id` y el diseño no lo contemplaba.
-- **Métodos de pago**: sin "saldo" ni "% de utilización" por tarjeta — no son datos
-  derivables de lo que hay hoy (no existe "saldo actual del corte" como endpoint), y
-  tampoco se guardan los últimos 4 dígitos de la tarjeta.
 - **Cronograma en "Compra a meses"**: la vista previa antes de guardar es un estimado
   simple (monto ÷ plazo); las fechas reales del ciclo de corte/pago sólo se muestran
   después de guardar, con los datos que regresa el POST — evita duplicar la lógica de
   `generarCuotas` en TypeScript.
+- **Métodos de pago**: sí muestra saldo y % de utilización por tarjeta (Fase 2, ver
+  abajo), pero no los últimos 4 dígitos — ese dato nunca se guarda.
+
+## Candado de acceso
+El link de Vercel es público. En vez de token horneado en el build (`VITE_` lo expone a
+cualquiera que abra el inspector), la app pide un código de acceso una vez por
+dispositivo (`web/src/gate.ts`), lo valida contra la API real, y lo guarda solo en
+`localStorage` — nunca viaja en el JS. En dev local, `VITE_APP_TOKEN` en `.env` sigue
+saltando el candado por comodidad. Sigue siendo un solo código compartido, no cuentas
+separadas — cualquiera con el código ve y edita los mismos datos.
+
+## Fase 2 — salud financiera
+Pantalla nueva `/salud` (enlazada desde Home, no es un tab del nav de abajo — igual que
+Métodos de pago). Decisiones de diseño que el plan dejaba abiertas:
+- **Patrimonio neto**: número actual (`ahorro total − compromiso MSI pendiente TOTAL`,
+  no solo los próximos 6 meses que usa `/api/resumen` en otras partes). Sin histórico
+  todavía — el plan mismo separa "tendencia mes a mes" como cosa de Fase 3.
+- **Fijo vs discrecional**: se clasifica por **rubro** (`rubro.clasificacion`), no por
+  gasto individual — misma granularidad que ya usa toda la app. Un rubro sin clasificar
+  cuenta aparte (`gasto_sin_clasificar`), nunca se mezcla ni se oculta.
+- **Guardrail MSI**: aviso visual en 20% (ámbar) y 30% (rojo) de ingreso comprometido,
+  como dice el plan — no bloquea la compra, solo avisa. Se muestra también *antes* de
+  guardar una compra nueva (con la cuota mensual estimada sumada al compromiso actual).
+- **Saldo de tarjeta / % utilización**: simplificado a mes calendario (gasto normal del
+  mes + cuotas MSI que vencen ese mes), igual que "Disponible" en el resto de la app —
+  no por ciclo de corte exacto día a día. Ver `resumen.go`.
+- **`Ingreso.fuente`**: texto libre (ej. "Salario", "Freelance"), no está limitado a
+  yo/pareja como `aportacion.fuente`.
 
 ## API
 Todas las rutas piden `Authorization: Bearer $APP_TOKEN` cuando la variable está definida.
@@ -68,10 +92,13 @@ Todas las rutas piden `Authorization: Bearer $APP_TOKEN` cuando la variable est�
 | POST/GET | `/api/compras-msi` | genera el cronograma de cuotas al crear |
 | DELETE | `/api/compras-msi/{id}` | Borra también sus cuotas (`ON DELETE CASCADE`) |
 | PATCH | `/api/cuotas/{id}` | `{"pagada":true}` |
+| POST/GET | `/api/ingresos` | `?periodo=YYYY-MM` filtra |
+| DELETE | `/api/ingresos/{id}` | |
 | GET | `/api/resumen` | `?periodo=YYYY-MM` (default: mes actual) |
 
-`/api/resumen` es la vista de la Fase 1: disponible por rubro, avance de cada bolsa de
-ahorro y compromiso MSI de los próximos 6 meses por mes y por tarjeta.
+`/api/resumen` trae todo: disponible por rubro, avance de ahorro, compromiso MSI a 6
+meses, y (Fase 2) `ingreso_total`, `tarjetas[]` (saldo/% utilización) y `salud`
+(tasa de ahorro, % ingreso comprometido en MSI, patrimonio neto, gasto fijo/discrecional).
 
 **Por qué no hay `PATCH`/`DELETE` para todo:** rubro y método de pago son configuración
 (su nombre, límite o meta cambian con el tiempo sin que tenga sentido borrar y
@@ -88,9 +115,6 @@ de débito a crédito) cambia qué campos son válidos, no es un simple cambio d
   se recorta al último del mes si hace falta. Está aislado en `generarCuotas` por si el
   banco calcula distinto y hay que ajustar.
 - **Auth**: un solo token compartido, sin cuentas — el plan dice que la pareja no tiene cuenta.
-- **"% de ingreso comprometido" en el home**: el diseño lo pide en la tarjeta principal,
-  pero requiere `Ingreso` (Fase 2, no existe todavía). El frontend lo omite por ahora en
-  vez de inventar el dato; se agrega cuando exista el endpoint de ingresos.
 
 ## Deploy
 Render lee el `backend/Dockerfile`. Variables: `DATABASE_URL` (Neon), `APP_TOKEN`,

@@ -48,9 +48,17 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
             <div class="k">Nombre del rubro</div>
             <input id="nombre-rubro" type="text" value="${esc(r.nombre)}" required />
           </div>
-          <button class="btn-primario" type="submit"><i data-lucide="check" style="width:19px;height:19px;"></i>Guardar nombre</button>
+          <div class="campo">
+            <div class="k">Clasificación (opcional)</div>
+            <div class="pills" id="pills-clasif-editar">
+              <span class="pill ${r.clasificacion === 'fijo' ? 'activa' : ''}" data-c="fijo">Fijo</span>
+              <span class="pill ${r.clasificacion === 'discrecional' ? 'activa' : ''}" data-c="discrecional">Discrecional</span>
+            </div>
+          </div>
+          <button class="btn-primario" type="submit"><i data-lucide="check" style="width:19px;height:19px;"></i>Guardar</button>
         </form>
       </div>
+      ${r.clasificacion ? `<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin:4px 4px 12px">&lt;${r.clasificacion}&gt;</div>` : ''}
       <div class="hero-mini">
         <div class="k">Disponible este mes</div>
         <div class="v">${money(r.disponible)}</div>
@@ -99,15 +107,23 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
   `;
   refreshIcons();
 
+  let clasifEditar = r.clasificacion;
   root.querySelector('#toggle-editar')!.addEventListener('click', () => {
     const el = root.querySelector<HTMLDivElement>('#form-editar')!;
     el.hidden = !el.hidden;
+  });
+  root.querySelector('#pills-clasif-editar')!.addEventListener('click', (e) => {
+    const p = (e.target as HTMLElement).closest<HTMLElement>('.pill');
+    if (!p) return;
+    const c = p.dataset.c as 'fijo' | 'discrecional';
+    clasifEditar = clasifEditar === c ? undefined : c;
+    root.querySelectorAll('#pills-clasif-editar .pill').forEach((el) => el.classList.toggle('activa', el.getAttribute('data-c') === clasifEditar));
   });
   root.querySelector<HTMLFormElement>('#fe')!.addEventListener('submit', async (e) => {
     e.preventDefault();
     const nombre = (root.querySelector<HTMLInputElement>('#nombre-rubro')!).value.trim();
     if (!nombre) return;
-    await actualizarRubro(id, { nombre });
+    await actualizarRubro(id, { nombre, clasificacion: clasifEditar });
     renderDetalleRubro(root, params);
   });
 

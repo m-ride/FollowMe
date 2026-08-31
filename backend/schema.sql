@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS rubro (
   tipo           TEXT NOT NULL CHECK (tipo IN ('gasto','ahorro')),
   monto_objetivo BIGINT
 );
+-- Fase 2: clasificación fijo/discrecional, solo aplica a tipo=gasto. ALTER (no en el
+-- CREATE) porque ya hay filas reales en producción — CREATE IF NOT EXISTS no las toca.
+ALTER TABLE rubro ADD COLUMN IF NOT EXISTS clasificacion TEXT CHECK (clasificacion IN ('fijo','discrecional'));
 
 CREATE TABLE IF NOT EXISTS aportacion (
   id       BIGSERIAL PRIMARY KEY,
@@ -56,6 +59,15 @@ CREATE TABLE IF NOT EXISTS cuota_msi (
   UNIQUE (compra_id, numero_cuota)
 );
 
+-- Fase 2: salud financiera.
+CREATE TABLE IF NOT EXISTS ingreso (
+  id      BIGSERIAL PRIMARY KEY,
+  fuente  TEXT NOT NULL,
+  monto   BIGINT NOT NULL CHECK (monto > 0),
+  periodo CHAR(7) NOT NULL  -- 'YYYY-MM'
+);
+
 CREATE INDEX IF NOT EXISTS idx_gasto_fecha      ON gasto(fecha);
 CREATE INDEX IF NOT EXISTS idx_aportacion_per   ON aportacion(periodo);
 CREATE INDEX IF NOT EXISTS idx_cuota_venc       ON cuota_msi(fecha_vencimiento) WHERE NOT pagada;
+CREATE INDEX IF NOT EXISTS idx_ingreso_per      ON ingreso(periodo);

@@ -7,13 +7,31 @@ import (
 )
 
 type rubroGasto struct {
-	ID             int64  `json:"id"`
-	Nombre         string `json:"nombre"`
-	AportadoYo     int64  `json:"aportado_yo"`
-	AportadoPareja int64  `json:"aportado_pareja"`
-	Gastado        int64  `json:"gastado"`
-	CuotasMSI      int64  `json:"cuotas_msi"`
-	Disponible     int64  `json:"disponible"`
+	ID             int64   `json:"id"`
+	Nombre         string  `json:"nombre"`
+	Clasificacion  *string `json:"clasificacion,omitempty"`
+	AportadoYo     int64   `json:"aportado_yo"`
+	AportadoPareja int64   `json:"aportado_pareja"`
+	Gastado        int64   `json:"gastado"`
+	CuotasMSI      int64   `json:"cuotas_msi"`
+	Disponible     int64   `json:"disponible"`
+}
+
+type tarjetaSalud struct {
+	ID             int64   `json:"id"`
+	Nombre         string  `json:"nombre"`
+	Limite         int64   `json:"limite"`
+	SaldoActual    int64   `json:"saldo_actual"`
+	PctUtilizacion float64 `json:"pct_utilizacion"`
+}
+
+type salud struct {
+	TasaAhorro                *float64 `json:"tasa_ahorro,omitempty"`
+	PctIngresoComprometidoMSI *float64 `json:"pct_ingreso_comprometido_msi,omitempty"`
+	PatrimonioNeto            int64    `json:"patrimonio_neto"`
+	GastoFijo                 int64    `json:"gasto_fijo"`
+	GastoDiscrecional         int64    `json:"gasto_discrecional"`
+	GastoSinClasificar        int64    `json:"gasto_sin_clasificar"`
 }
 
 type bolsaAhorro struct {
@@ -50,7 +68,7 @@ func resumen(w http.ResponseWriter, r *http.Request) {
 	// Disponible del mes = aportaciones (yo + pareja) − gastos − cuotas MSI que
 	// vencen en el mes. La compra MSI no se cuenta completa, sólo su cuota.
 	rows, err := db.Query(ctx, `
-		SELECT r.id, r.nombre,
+		SELECT r.id, r.nombre, r.clasificacion,
 		  COALESCE((SELECT SUM(a.monto) FROM aportacion a
 		            WHERE a.rubro_id=r.id AND a.periodo=$1 AND a.fuente='yo'),0),
 		  COALESCE((SELECT SUM(a.monto) FROM aportacion a
@@ -67,7 +85,7 @@ func resumen(w http.ResponseWriter, r *http.Request) {
 	rubros := []rubroGasto{}
 	for rows.Next() {
 		var x rubroGasto
-		if err := rows.Scan(&x.ID, &x.Nombre, &x.AportadoYo, &x.AportadoPareja, &x.Gastado, &x.CuotasMSI); err != nil {
+		if err := rows.Scan(&x.ID, &x.Nombre, &x.Clasificacion, &x.AportadoYo, &x.AportadoPareja, &x.Gastado, &x.CuotasMSI); err != nil {
 			rows.Close()
 			fallo(w, err)
 			return
@@ -135,10 +153,118 @@ func resumen(w http.ResponseWriter, r *http.Request) {
 		total += t.Monto
 	}
 
+	// --- Fase 2: salud financiera ---
+
+	var ingresoTotal int64
+	if err := db.QueryRow(ctx, `SELECT COALESCE(SUM(monto),0) FROM ingreso WHERE periodo=$1`, periodo).
+		Scan(&ingresoTotal); err != nil {
+		fallo(w, err)
+		return
+	}
+
+	// Gasto del mes partido por clasificación del rubro (fijo/discrecional/sin
+	// clasificar) — sin clasificar es su propio balde, no se mezcla ni se oculta.
+	var gastoFijo, gastoDiscrecional, gastoSinClasificar int64
+	rowsClasif, err := db.Query(ctx, `
+		SELECT r.clasificacion, SUM(g.monto)
+		FROM gasto g JOIN rubro r ON r.id = g.rubro_id
+		WHERE to_char(g.fecha,'YYYY-MM') = $1
+		GROUP BY r.clasificacion`, periodo)
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	for rowsClasif.Next() {
+		var clasif *string
+		var monto int64
+		if err := rowsClasif.Scan(&clasif, &monto); err != nil {
+			rowsClasif.Close()
+			fallo(w, err)
+			return
+		}
+		switch {
+		case clasif == nil:
+			gastoSinClasificar = monto
+		case *clasif == "fijo":
+			gastoFijo = monto
+		case *clasif == "discrecional":
+			gastoDiscrecional = monto
+		}
+	}
+	rowsClasif.Close()
+
+	// Pasivo para patrimonio neto: TODA cuota pendiente, no solo los próximos 6
+	// meses (compromiso_msi.total de arriba es la vista a 6 meses, para otra cosa).
+	var pasivoTotal int64
+	if err := db.QueryRow(ctx, `SELECT COALESCE(SUM(monto),0) FROM cuota_msi WHERE NOT pagada`).
+		Scan(&pasivoTotal); err != nil {
+		fallo(w, err)
+		return
+	}
+
+	// Utilización de crédito: gasto normal del mes + cuotas MSI que vencen el mes,
+	// por tarjeta. Igual de simplificado que "Disponible" arriba — por mes
+	// calendario, no por ciclo de corte exacto de cada tarjeta.
+	rowsTarj, err := db.Query(ctx, `
+		SELECT m.id, m.nombre, m.limite,
+		  COALESCE((SELECT SUM(g.monto) FROM gasto g
+		            WHERE g.metodo_pago_id=m.id AND to_char(g.fecha,'YYYY-MM')=$1),0)
+		  + COALESCE((SELECT SUM(q.monto) FROM cuota_msi q JOIN compra_msi c ON c.id=q.compra_id
+		              WHERE c.tarjeta_id=m.id AND to_char(q.fecha_vencimiento,'YYYY-MM')=$1
+		                AND NOT q.pagada),0)
+		FROM metodo_pago m WHERE m.tipo='credito' ORDER BY m.id`, periodo)
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	tarjetas := []tarjetaSalud{}
+	for rowsTarj.Next() {
+		var t tarjetaSalud
+		if err := rowsTarj.Scan(&t.ID, &t.Nombre, &t.Limite, &t.SaldoActual); err != nil {
+			rowsTarj.Close()
+			fallo(w, err)
+			return
+		}
+		if t.Limite > 0 {
+			t.PctUtilizacion = float64(t.SaldoActual) / float64(t.Limite) * 100
+		}
+		tarjetas = append(tarjetas, t)
+	}
+	rowsTarj.Close()
+
+	totalAhorro := int64(0)
+	for _, b := range ahorro {
+		totalAhorro += b.Saldo
+	}
+	gastoTotalMes := gastoFijo + gastoDiscrecional + gastoSinClasificar
+
+	sd := salud{
+		PatrimonioNeto:     totalAhorro - pasivoTotal,
+		GastoFijo:          gastoFijo,
+		GastoDiscrecional:  gastoDiscrecional,
+		GastoSinClasificar: gastoSinClasificar,
+	}
+	if ingresoTotal > 0 {
+		ta := float64(ingresoTotal-gastoTotalMes) / float64(ingresoTotal) * 100
+		sd.TasaAhorro = &ta
+		var compromisoMes int64
+		for _, m := range meses {
+			if m.Mes == periodo {
+				compromisoMes = m.Total
+				break
+			}
+		}
+		pc := float64(compromisoMes) / float64(ingresoTotal) * 100
+		sd.PctIngresoComprometidoMSI = &pc
+	}
+
 	responder(w, map[string]any{
-		"periodo": periodo,
-		"rubros":  rubros,
-		"ahorro":  ahorro,
+		"periodo":       periodo,
+		"rubros":        rubros,
+		"ahorro":        ahorro,
+		"ingreso_total": ingresoTotal,
+		"tarjetas":      tarjetas,
+		"salud":         sd,
 		"compromiso_msi": map[string]any{
 			"meses": meses,
 			"total": total,

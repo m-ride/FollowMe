@@ -3,11 +3,29 @@ import { API_URL, getToken, clearToken } from './config';
 export interface RubroResumen {
   id: number;
   nombre: string;
+  clasificacion?: 'fijo' | 'discrecional';
   aportado_yo: number;
   aportado_pareja: number;
   gastado: number;
   cuotas_msi: number;
   disponible: number;
+}
+
+export interface TarjetaSalud {
+  id: number;
+  nombre: string;
+  limite: number;
+  saldo_actual: number;
+  pct_utilizacion: number;
+}
+
+export interface Salud {
+  tasa_ahorro?: number;
+  pct_ingreso_comprometido_msi?: number;
+  patrimonio_neto: number;
+  gasto_fijo: number;
+  gasto_discrecional: number;
+  gasto_sin_clasificar: number;
 }
 
 export interface BolsaAhorro {
@@ -34,6 +52,9 @@ export interface Resumen {
   periodo: string;
   rubros: RubroResumen[];
   ahorro: BolsaAhorro[];
+  ingreso_total: number;
+  tarjetas: TarjetaSalud[];
+  salud: Salud;
   compromiso_msi: { meses: MesMSI[]; total: number };
 }
 
@@ -42,6 +63,14 @@ export interface Rubro {
   nombre: string;
   tipo: 'gasto' | 'ahorro';
   monto_objetivo?: number;
+  clasificacion?: 'fijo' | 'discrecional';
+}
+
+export interface Ingreso {
+  id: number;
+  fuente: string;
+  monto: number;
+  periodo: string;
 }
 
 export interface MetodoPago {
@@ -109,8 +138,10 @@ const del = (path: string) => req<void>(path, { method: 'DELETE' });
 export const getResumen = (periodo?: string) => get<Resumen>(`resumen${periodo ? `?periodo=${periodo}` : ''}`);
 export const getRubros = () => get<Rubro[]>('rubros');
 export const crearRubro = (r: Omit<Rubro, 'id'>) => post<Rubro>('rubros', r);
-export const actualizarRubro = (id: number, r: { nombre: string; monto_objetivo?: number }) =>
-  patch(`rubros/${id}`, r);
+export const actualizarRubro = (
+  id: number,
+  r: { nombre: string; monto_objetivo?: number; clasificacion?: 'fijo' | 'discrecional' }
+) => patch(`rubros/${id}`, r);
 export const getMetodos = () => get<MetodoPago[]>('metodos-pago');
 export const crearMetodo = (m: Omit<MetodoPago, 'id'>) => post<MetodoPago>('metodos-pago', m);
 export const actualizarMetodo = (
@@ -128,3 +159,6 @@ export const crearCompraMSI = (
 ) => post<CompraMSI>('compras-msi', c);
 export const getComprasMSI = () => get<CompraMSI[]>('compras-msi');
 export const borrarCompraMSI = (id: number) => del(`compras-msi/${id}`);
+export const getIngresos = (periodo?: string) => get<Ingreso[]>(`ingresos${periodo ? `?periodo=${periodo}` : ''}`);
+export const crearIngreso = (i: Omit<Ingreso, 'id'>) => post<Ingreso>('ingresos', i);
+export const borrarIngreso = (id: number) => del(`ingresos/${id}`);

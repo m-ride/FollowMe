@@ -1,4 +1,4 @@
-import { getMetodos, crearMetodo, actualizarMetodo, type MetodoPago } from '../api';
+import { getMetodos, getResumen, crearMetodo, actualizarMetodo, type MetodoPago } from '../api';
 import { money, esc } from '../format';
 import { iconoMetodo, refreshIcons } from '../icons';
 import { topbarBack } from '../chrome';
@@ -6,7 +6,7 @@ import { topbarBack } from '../chrome';
 export async function renderMetodos(root: HTMLElement) {
   root.innerHTML = `<div class="screen">${topbarBack('Métodos de pago', '/')}<div class="placeholder">Cargando…</div></div>`;
 
-  const metodos = await getMetodos();
+  const [metodos, resumen] = await Promise.all([getMetodos(), getResumen()]);
   const tarjetas = metodos.filter((m) => m.tipo === 'credito');
   const otros = metodos.filter((m) => m.tipo !== 'credito');
 
@@ -34,18 +34,29 @@ export async function renderMetodos(root: HTMLElement) {
       </form>
     </div>`;
 
-  const tarjetaHtml = (m: MetodoPago) => `
+  const tarjetaHtml = (m: MetodoPago) => {
+    const salud = resumen.tarjetas.find((t) => t.id === m.id);
+    const color = !salud ? '' : salud.pct_utilizacion >= 80 ? 'error' : salud.pct_utilizacion >= 50 ? 'warn' : '';
+    return `
     <div class="metodo-card">
       <div class="fila">
         <div class="icono"><i data-lucide="credit-card" style="width:20px;height:20px;"></i></div>
         <div class="info">
           <div class="nombre">${esc(m.nombre)}</div>
-          <div class="sub">corte ${m.dia_corte} · pago ${m.dia_pago}${m.limite ? ` · límite ${money(m.limite)}` : ''}</div>
+          <div class="sub">corte ${m.dia_corte} · pago ${m.dia_pago}</div>
         </div>
+        ${salud ? `<div class="saldo"><div class="v">${money(salud.saldo_actual)}</div><div class="k">saldo</div></div>` : ''}
         ${editarBtn(m.id)}
       </div>
+      ${
+        salud
+          ? `<div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-muted);margin-top:14px"><span>Utilización</span><span>${salud.pct_utilizacion.toFixed(0)}% de ${money(salud.limite)}</span></div>
+             <div class="progress" style="margin-top:6px"><div class="${color}" style="width:${Math.min(salud.pct_utilizacion, 100)}%"></div></div>`
+          : ''
+      }
       ${formEditarTarjeta(m)}
     </div>`;
+  };
 
   const otroHtml = (m: MetodoPago) => `
     <div class="metodo-card simple">
