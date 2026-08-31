@@ -1,4 +1,4 @@
-import { API_URL, APP_TOKEN } from './config';
+import { API_URL, getToken, clearToken } from './config';
 
 export interface RubroResumen {
   id: number;
@@ -86,11 +86,17 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}/${path}`, {
     ...init,
     headers: {
-      Authorization: `Bearer ${APP_TOKEN}`,
+      Authorization: `Bearer ${getToken() ?? ''}`,
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
       ...init?.headers,
     },
   });
+  if (res.status === 401) {
+    // El token guardado ya no sirve (nunca fue válido, o lo rotaron) — de vuelta al candado.
+    clearToken();
+    location.reload();
+    throw new Error('no autorizado');
+  }
   if (!res.ok) throw new Error(`${path}: ${res.status} ${await res.text()}`);
   return res.status === 204 ? (undefined as T) : res.json();
 }
