@@ -1,0 +1,5 @@
+# Cruft de Mark-of-the-Web de Windows/WSL
+*:Zone.Identifier
+
+# Config local con secretos
+.env

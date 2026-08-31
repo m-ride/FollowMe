@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Go test + lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: gofmt (sin salida = formateado)
+        working-directory: backend
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; echo 'hay archivos sin formatear'; exit 1; }
+      - run: go vet ./...
+        working-directory: backend
+      - run: go build ./...
+        working-directory: backend
+      # Falla si una CVE conocida es alcanzable desde el código (deps o stdlib).
+      - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        working-directory: backend
+      - run: go test ./...
+        working-directory: backend
+
+  smoke:
+    name: Smoke E2E (docker compose)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose up -d --build
+      - name: esperar a que la API responda
+        run: timeout 30 bash -c 'until curl -sf http://localhost:8081/api/rubros -H "Authorization: Bearer dev"; do sleep 1; done'
+      - run: ./backend/smoke.sh
+        env:
+          APP_TOKEN: dev
