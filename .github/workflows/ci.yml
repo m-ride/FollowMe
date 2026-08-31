@@ -37,7 +37,8 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker compose up -d --build
       - name: esperar a que la API responda
-        run: timeout 30 bash -c 'until curl -sf http://localhost:8081/api/rubros -H "Authorization: Bearer dev"; do sleep 1; done'
+        run: |
+          timeout 30 bash -c 'until curl -sf http://localhost:8081/api/rubros -H "Authorization: Bearer dev"; do sleep 1; done'
       - run: ./backend/smoke.sh
         env:
           APP_TOKEN: dev
