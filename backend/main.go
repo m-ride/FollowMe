@@ -74,7 +74,9 @@ func auth(next http.Handler) http.Handler {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodOptions {
+		// El healthcheck de Render (u otro balanceador) pega aquí sin credenciales;
+		// exigirle el token hace que el deploy nunca se vea "sano" y truene por timeout.
+		if r.Method == http.MethodOptions || r.URL.Path == "/api/health" {
 			next.ServeHTTP(w, r)
 			return
 		}
