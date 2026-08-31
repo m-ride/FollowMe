@@ -9,14 +9,14 @@ import { renderNuevaCompraMSI } from './screens/nuevaCompraMSI';
 import { renderMSI } from './screens/msi';
 import { renderAhorro } from './screens/ahorro';
 import { renderMetodos } from './screens/metodos';
-import { renderPlaceholder } from './screens/placeholder';
+import { renderGastos } from './screens/gastos';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 
 startRouter(
   [
     { path: '/', render: renderHome },
-    { path: '/gastos', render: renderPlaceholder('/gastos', 'Gastos') },
+    { path: '/gastos', render: renderGastos },
     { path: '/gastos/nuevo', render: renderNuevoGasto },
     { path: '/rubro', render: renderDetalleRubro },
     { path: '/msi', render: renderMSI },

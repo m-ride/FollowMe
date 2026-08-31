@@ -11,6 +11,14 @@ cd backend && go test ./... # cronograma MSI (sin base de datos)
 ```
 La API queda en `http://localhost:8081/api`, la base en el puerto `5433`.
 
+`./backend/seed-demo.sh` siembra datos de demo realistas (varios rubros, tarjetas,
+bolsas de ahorro con avance, un rubro sobrepasado a propósito) para revisar el
+frontend con algo parecido a uso real, no con los datos desechables de `smoke.sh`.
+Corre `smoke.sh` después y vas a mezclar ambos — si quieres la demo limpia, trunca la
+DB primero (`docker exec followme-db-1 psql -U postgres -d finanzas -c "TRUNCATE
+cuota_msi, compra_msi, gasto, aportacion, rubro, metodo_pago RESTART IDENTITY
+CASCADE;"`).
+
 ## Frontend — correr en local
 ```bash
 cd web
@@ -20,8 +28,9 @@ npm run dev             # http://localhost:5173, requiere la API arriba
 ```
 Diseño fuente en `diseño de aplicacion/` (handoff de Claude Design): dirección de
 inicio **1a** confirmada. Las 7 pantallas están construidas y conectadas a la API real
-— ver `web/src/screens/`. `/gastos` (lista general de gastos) queda como placeholder:
-no estaba entre las pantallas diseñadas, solo el ítem del nav.
+— ver `web/src/screens/`. `/gastos` (lista de todos los movimientos) se agregó sin
+estar en el diseño original: el ítem del nav ya existía y sin pantalla real era un
+callejón sin salida.
 
 Diferencias con el diseño, por datos que el backend de Fase 1 no tiene todavía:
 - **Home**: sin el tile de "% de ingreso comprometido" (necesita `Ingreso`, Fase 2).

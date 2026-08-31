@@ -1,7 +1,11 @@
 const mxn = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 });
 
 // El backend maneja todo en centavos (enteros); esto muestra pesos enteros.
-export const money = (cents: number): string => `$${mxn.format(cents / 100)}`;
+// El signo va antes del "$" ("-$150", no "$-150"): Intl.format ya lo antepone al número.
+export const money = (cents: number): string => {
+  const pesos = mxn.format(Math.abs(cents) / 100);
+  return cents < 0 ? `-$${pesos}` : `$${pesos}`;
+};
 
 export const fechaCorta = (iso: string): string =>
   new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(new Date(`${iso}T00:00:00`));

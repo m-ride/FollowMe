@@ -255,5 +255,7 @@ html, body, #app { height: 100%; }
 .hero-mini .d { font-size: 12.5px; color: var(--on-dark-muted); margin-top: 8px; }
 .hero-mini .progress-dark { height: 7px; border-radius: var(--radius-pill); background: var(--cream-16); margin-top: 14px; overflow: hidden; }
 .hero-mini .progress-dark > div { height: 100%; background: var(--teal); border-radius: var(--radius-pill); }
+.hero-mini .progress-dark > div.warn { background: var(--status-warn); }
+.hero-mini .progress-dark > div.error { background: #E8867A; }
 
 .inline-form { margin-top: var(--space-4); border-top: 1px dashed var(--border-default); padding-top: var(--space-4); }

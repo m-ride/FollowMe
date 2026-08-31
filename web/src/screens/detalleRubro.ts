@@ -16,7 +16,9 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
 
   const total = r.aportado_yo + r.aportado_pareja;
   const usado = r.gastado + r.cuotas_msi;
-  const pct = total > 0 ? Math.min((usado / total) * 100, 100) : 0;
+  const pctReal = total > 0 ? (usado / total) * 100 : 0;
+  const estado = pctReal >= 100 ? 'error' : pctReal >= 90 ? 'warn' : '';
+  const pct = Math.min(pctReal, 100);
   const movimientos = gastos.filter((g) => g.rubro_id === id);
 
   const movHtml = movimientos
@@ -41,7 +43,7 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
         <div class="k">Disponible este mes</div>
         <div class="v">${money(r.disponible)}</div>
         <div class="d">gastado ${money(usado)} de ${money(total)}</div>
-        <div class="progress-dark"><div style="width:${pct}%"></div></div>
+        <div class="progress-dark"><div class="${estado}" style="width:${pct}%"></div></div>
       </div>
       <div class="stat-pair">
         <div class="stat-box">

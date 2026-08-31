@@ -13,12 +13,19 @@ export async function renderHome(root: HTMLElement) {
   const totalAportado = r.rubros.reduce((s, x) => s + x.aportado_yo + x.aportado_pareja, 0);
   const msiEsteMes = r.compromiso_msi.meses.find((m) => m.mes === r.periodo)?.total ?? 0;
 
+  const RANGO = { error: 0, warn: 1, ok: 2 };
   const rubros = r.rubros
     .map((x) => {
       const total = x.aportado_yo + x.aportado_pareja;
       const usado = x.gastado + x.cuotas_msi;
       const pct = total > 0 ? (usado / total) * 100 : 0;
       const estado = pct >= 100 ? 'error' : pct >= 90 ? 'warn' : 'ok';
+      return { x, pct, estado, total, usado };
+    })
+    // Los rubros en problemas (sobrepasado/ajustado) van primero — si no, el más
+    // urgente puede quedar enterrado al final de la lista según el orden de alta.
+    .sort((a, b) => RANGO[a.estado as keyof typeof RANGO] - RANGO[b.estado as keyof typeof RANGO])
+    .map(({ x, pct, estado, total, usado }) => {
       const etiqueta = estado === 'error' ? 'sobrepasado' : estado === 'warn' ? 'ajustado' : '';
       return `
         <a href="#/rubro?id=${x.id}" class="rubro-card ${estado === 'error' ? 'sobrepasado' : ''}" style="text-decoration:none;color:inherit;display:block">
