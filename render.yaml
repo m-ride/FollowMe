@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: followme-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_TOKEN
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
