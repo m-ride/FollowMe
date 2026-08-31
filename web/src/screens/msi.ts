@@ -1,14 +1,15 @@
-import { getResumen, getComprasMSI } from '../api';
+import { getResumen, getComprasMSI, getMetodos, borrarCompraMSI } from '../api';
 import { money, mesLargo, esc } from '../format';
 import { renderNav } from '../nav';
+import { refreshIcons } from '../icons';
 
 export async function renderMSI(root: HTMLElement) {
   root.innerHTML = `<div class="screen"><div class="placeholder">Cargando…</div></div>${renderNav('/msi')}`;
 
-  const [resumen, compras] = await Promise.all([getResumen(), getComprasMSI()]);
+  const [resumen, compras, metodos] = await Promise.all([getResumen(), getComprasMSI(), getMetodos()]);
   const { meses, total } = resumen.compromiso_msi;
   const esteMes = meses.find((m) => m.mes === resumen.periodo)?.total ?? 0;
-  const activas = compras.filter((c) => c.cuotas.some((q) => !q.pagada)).length;
+  const activas = compras.filter((c) => c.cuotas.some((q) => !q.pagada));
 
   const max = Math.max(...meses.map((m) => m.total), 1);
   const barras = meses
@@ -30,6 +31,23 @@ export async function renderMSI(root: HTMLElement) {
     )
     .join('');
 
+  const comprasHtml = activas
+    .map((c) => {
+      const tarjeta = metodos.find((m) => m.id === c.tarjeta_id);
+      const pendientes = c.cuotas.filter((q) => !q.pagada).length;
+      return `
+        <div class="mov-item">
+          <div class="icono"><i data-lucide="credit-card" style="width:17px;height:17px;"></i></div>
+          <div class="info">
+            <div class="desc">${esc(c.descripcion || '(sin descripción)')}</div>
+            <div class="meta">${esc(tarjeta?.nombre ?? '—')} · ${pendientes} de ${c.plazo_meses} cuotas pendientes</div>
+          </div>
+          <span class="monto">${money(c.monto_total)}</span>
+          <button type="button" class="icon-btn btn-borrar-compra" data-id="${c.id}" style="width:32px;height:32px;flex-shrink:0"><i data-lucide="trash-2" style="width:15px;height:15px;"></i></button>
+        </div>`;
+    })
+    .join('');
+
   root.innerHTML = `
     <div class="screen">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 4px 0">
@@ -44,13 +62,24 @@ export async function renderMSI(root: HTMLElement) {
         <div class="v">${money(total)}</div>
         <div class="stat-row">
           <div class="stat"><div class="k">Este mes</div><div class="v">${money(esteMes)}</div></div>
-          <div class="stat"><div class="k">Compras activas</div><div class="v">${activas}</div></div>
+          <div class="stat"><div class="k">Compras activas</div><div class="v">${activas.length}</div></div>
         </div>
       </div>
       <div class="seccion-label"><span>&lt;próximos ${meses.length} meses&gt;</span></div>
       <div class="bar-chart"><div class="cols">${barras || '<div class="placeholder">Sin compromisos</div>'}</div></div>
       <div class="rubro-list" style="margin-top:var(--space-4)">${filas || ''}</div>
+      <div class="seccion-label"><span>&lt;tus compras&gt;</span></div>
+      <div class="rubro-list">${comprasHtml || '<div class="placeholder">Sin compras a meses todavía</div>'}</div>
     </div>
     ${renderNav('/msi')}
   `;
+  refreshIcons();
+
+  root.querySelectorAll<HTMLButtonElement>('.btn-borrar-compra').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Borrar esta compra y sus cuotas?')) return;
+      await borrarCompraMSI(Number(btn.dataset.id));
+      await renderMSI(root);
+    });
+  });
 }

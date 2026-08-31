@@ -1,0 +1,73 @@
+import { crearRubro, type Rubro } from '../api';
+import { topbarBack } from '../chrome';
+import { refreshIcons } from '../icons';
+
+export async function renderNuevoRubro(root: HTMLElement, params: URLSearchParams) {
+  let tipo: Rubro['tipo'] = params.get('tipo') === 'ahorro' ? 'ahorro' : 'gasto';
+  const volverA = tipo === 'ahorro' ? '/ahorro' : '/';
+
+  const render = () => {
+    root.innerHTML = `
+      <div class="screen">
+        ${topbarBack(tipo === 'ahorro' ? 'Nueva bolsa' : 'Nueva categoría', volverA)}
+        <form id="f">
+          <div class="campo">
+            <div class="k">Tipo</div>
+            <div class="pills" id="pills-tipo">
+              <span class="pill ${tipo === 'gasto' ? 'activa' : ''}" data-t="gasto">Gasto</span>
+              <span class="pill ${tipo === 'ahorro' ? 'activa' : ''}" data-t="ahorro">Ahorro</span>
+            </div>
+          </div>
+          <div class="campo">
+            <div class="k">Nombre</div>
+            <input id="nombre" type="text" placeholder="${tipo === 'ahorro' ? 'Ej. Viaje a Japón' : 'Ej. Mascotas'}" required />
+          </div>
+          <div id="campo-meta" ${tipo === 'ahorro' ? '' : 'hidden'}>
+            <div class="campo">
+              <div class="k">Meta de ahorro (opcional)</div>
+              <input id="meta" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0.00" />
+            </div>
+          </div>
+          <div class="error-msg" id="error" hidden></div>
+        </form>
+      </div>
+      <div class="barra-inferior">
+        <button form="f" class="btn-primario" type="submit"><i data-lucide="check" style="width:19px;height:19px;"></i>Guardar</button>
+      </div>
+    `;
+    refreshIcons();
+
+    root.querySelector('#pills-tipo')!.addEventListener('click', (e) => {
+      const p = (e.target as HTMLElement).closest<HTMLElement>('.pill');
+      if (!p) return;
+      tipo = p.dataset.t as Rubro['tipo'];
+      render();
+    });
+
+    root.querySelector<HTMLFormElement>('#f')!.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorEl = root.querySelector<HTMLDivElement>('#error')!;
+      errorEl.hidden = true;
+      const nombre = (root.querySelector<HTMLInputElement>('#nombre')!).value.trim();
+      if (!nombre) {
+        errorEl.textContent = 'Falta el nombre.';
+        errorEl.hidden = false;
+        return;
+      }
+      const metaStr = (root.querySelector<HTMLInputElement>('#meta')?.value) ?? '';
+      try {
+        await crearRubro({
+          nombre,
+          tipo,
+          ...(tipo === 'ahorro' && metaStr ? { monto_objetivo: Math.round(parseFloat(metaStr) * 100) } : {}),
+        });
+        location.hash = tipo === 'ahorro' ? '#/ahorro' : '#/';
+      } catch (err) {
+        errorEl.textContent = (err as Error).message;
+        errorEl.hidden = false;
+      }
+    });
+  };
+
+  render();
+}

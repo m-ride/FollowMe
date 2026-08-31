@@ -32,6 +32,14 @@ inicio **1a** confirmada. Las 7 pantallas están construidas y conectadas a la A
 estar en el diseño original: el ítem del nav ya existía y sin pantalla real era un
 callejón sin salida.
 
+El diseño (las 6 pantallas del handoff) no incluía cómo crear categorías/bolsas, cómo
+aportar a un rubro de gasto ("presupuesto"), ni cómo editar o borrar algo ya cargado —
+se agregó todo eso porque sin ello la app no se puede usar de verdad: nueva categoría/
+bolsa (`/rubro/nuevo`), aportación desde el detalle de un rubro de gasto, editar
+(nombre/meta/límite) en rubro y método de pago, borrar gasto/aportación/compra MSI. El
+botón central del nav dejó de ir directo a "nuevo gasto": ahora abre un menú corto con
+las 4 acciones de crear.
+
 Diferencias con el diseño, por datos que el backend de Fase 1 no tiene todavía:
 - **Home**: sin el tile de "% de ingreso comprometido" (necesita `Ingreso`, Fase 2).
 - **Compra a meses**: se agregó un selector de **Rubro** que el mockup no traía — el
@@ -50,15 +58,27 @@ Todas las rutas piden `Authorization: Bearer $APP_TOKEN` cuando la variable est�
 | Método | Ruta | Notas |
 |---|---|---|
 | POST/GET | `/api/metodos-pago` | `tipo`: efectivo \| debito \| credito. Crédito exige `limite`, `dia_corte`, `dia_pago` |
+| PATCH | `/api/metodos-pago/{id}` | Edita nombre/límite/corte/pago. `tipo` no se puede cambiar (ver más abajo) |
 | POST/GET | `/api/rubros` | `tipo`: gasto \| ahorro. Ahorro acepta `monto_objetivo` |
+| PATCH | `/api/rubros/{id}` | Edita nombre/monto_objetivo. `tipo` tampoco se puede cambiar |
 | POST | `/api/aportaciones` | `fuente`: yo \| pareja, `periodo`: `YYYY-MM` |
+| DELETE | `/api/aportaciones/{id}` | Corregir un monto mal capturado es borrar y volver a capturar |
 | POST/GET | `/api/gastos` | `?periodo=YYYY-MM` filtra |
+| DELETE | `/api/gastos/{id}` | |
 | POST/GET | `/api/compras-msi` | genera el cronograma de cuotas al crear |
+| DELETE | `/api/compras-msi/{id}` | Borra también sus cuotas (`ON DELETE CASCADE`) |
 | PATCH | `/api/cuotas/{id}` | `{"pagada":true}` |
 | GET | `/api/resumen` | `?periodo=YYYY-MM` (default: mes actual) |
 
 `/api/resumen` es la vista de la Fase 1: disponible por rubro, avance de cada bolsa de
 ahorro y compromiso MSI de los próximos 6 meses por mes y por tarjeta.
+
+**Por qué no hay `PATCH`/`DELETE` para todo:** rubro y método de pago son configuración
+(su nombre, límite o meta cambian con el tiempo sin que tenga sentido borrar y
+recrear), así que llevan edición real. Gasto, aportación y compra MSI son movimientos
+— corregir uno mal capturado es borrarlo y volver a capturarlo, no editarlo in situ.
+`tipo` es inmutable en ambos editables: pasar un rubro de gasto a ahorro (o un método
+de débito a crédito) cambia qué campos son válidos, no es un simple cambio de nombre.
 
 ## Decisiones que el plan dejaba abiertas
 - **`compra_msi.rubro_id`**: el plan dice que "la cuota impacta el rubro" pero el modelo

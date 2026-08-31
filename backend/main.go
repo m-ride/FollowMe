@@ -41,13 +41,18 @@ func main() {
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
 	mux.HandleFunc("GET /api/metodos-pago", listMetodos)
 	mux.HandleFunc("POST /api/metodos-pago", crearMetodo)
+	mux.HandleFunc("PATCH /api/metodos-pago/{id}", actualizarMetodo)
 	mux.HandleFunc("GET /api/rubros", listRubros)
 	mux.HandleFunc("POST /api/rubros", crearRubro)
+	mux.HandleFunc("PATCH /api/rubros/{id}", actualizarRubro)
 	mux.HandleFunc("POST /api/aportaciones", crearAportacion)
+	mux.HandleFunc("DELETE /api/aportaciones/{id}", borrarAportacion)
 	mux.HandleFunc("GET /api/gastos", listGastos)
 	mux.HandleFunc("POST /api/gastos", crearGasto)
+	mux.HandleFunc("DELETE /api/gastos/{id}", borrarGasto)
 	mux.HandleFunc("GET /api/compras-msi", listComprasMSI)
 	mux.HandleFunc("POST /api/compras-msi", crearCompraMSI)
+	mux.HandleFunc("DELETE /api/compras-msi/{id}", borrarCompraMSI)
 	mux.HandleFunc("PATCH /api/cuotas/{id}", marcarCuota)
 	mux.HandleFunc("GET /api/resumen", resumen)
 
@@ -86,7 +91,7 @@ func cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -174,6 +179,37 @@ func crearMetodo(w http.ResponseWriter, r *http.Request) {
 	responder(w, m)
 }
 
+// actualizarMetodo no deja cambiar tipo: efectivo/débito/crédito piden campos
+// distintos (el CHECK del esquema lo exige) y cambiar de uno a otro no es un
+// simple "editar", es dar de alta otro método.
+func actualizarMetodo(w http.ResponseWriter, r *http.Request) {
+	body, ok := leer[struct {
+		Nombre   string `json:"nombre"`
+		Limite   *int64 `json:"limite,omitempty"`
+		DiaCorte *int   `json:"dia_corte,omitempty"`
+		DiaPago  *int   `json:"dia_pago,omitempty"`
+	}](w, r)
+	if !ok {
+		return
+	}
+	if body.Nombre == "" {
+		malo(w, errors.New("nombre requerido"))
+		return
+	}
+	tag, err := db.Exec(r.Context(),
+		`UPDATE metodo_pago SET nombre=$1, limite=$2, dia_corte=$3, dia_pago=$4 WHERE id=$5`,
+		body.Nombre, body.Limite, body.DiaCorte, body.DiaPago, r.PathValue("id"))
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		http.Error(w, "método no encontrado", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func listMetodos(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query(r.Context(),
 		`SELECT id, nombre, tipo, limite, dia_corte, dia_pago FROM metodo_pago ORDER BY id`)
@@ -220,6 +256,34 @@ func crearRubro(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	responder(w, x)
+}
+
+// actualizarRubro no deja cambiar tipo: pasar de gasto a ahorro (o viceversa)
+// cambia qué significan sus aportaciones y gastos, no es un simple "editar".
+func actualizarRubro(w http.ResponseWriter, r *http.Request) {
+	body, ok := leer[struct {
+		Nombre        string `json:"nombre"`
+		MontoObjetivo *int64 `json:"monto_objetivo,omitempty"`
+	}](w, r)
+	if !ok {
+		return
+	}
+	if body.Nombre == "" {
+		malo(w, errors.New("nombre requerido"))
+		return
+	}
+	tag, err := db.Exec(r.Context(),
+		`UPDATE rubro SET nombre=$1, monto_objetivo=$2 WHERE id=$3`,
+		body.Nombre, body.MontoObjetivo, r.PathValue("id"))
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		http.Error(w, "rubro no encontrado", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func listRubros(w http.ResponseWriter, r *http.Request) {
@@ -269,6 +333,21 @@ func crearAportacion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	responder(w, a)
+}
+
+// borrarAportacion es la manera de corregir un monto mal capturado: se borra y se
+// vuelve a capturar bien, en vez de un formulario de "editar" que casi nunca se usa.
+func borrarAportacion(w http.ResponseWriter, r *http.Request) {
+	tag, err := db.Exec(r.Context(), `DELETE FROM aportacion WHERE id=$1`, r.PathValue("id"))
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		http.Error(w, "aportación no encontrada", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // --- gastos -----------------------------------------------------------------
@@ -330,6 +409,19 @@ func listGastos(w http.ResponseWriter, r *http.Request) {
 		out = append(out, g)
 	}
 	responder(w, out)
+}
+
+func borrarGasto(w http.ResponseWriter, r *http.Request) {
+	tag, err := db.Exec(r.Context(), `DELETE FROM gasto WHERE id=$1`, r.PathValue("id"))
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		http.Error(w, "gasto no encontrado", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // --- compras MSI ------------------------------------------------------------
@@ -441,6 +533,20 @@ func listComprasMSI(w http.ResponseWriter, r *http.Request) {
 		out = append(out, c)
 	}
 	responder(w, out)
+}
+
+// borrarCompraMSI también borra sus cuotas (ON DELETE CASCADE en el esquema).
+func borrarCompraMSI(w http.ResponseWriter, r *http.Request) {
+	tag, err := db.Exec(r.Context(), `DELETE FROM compra_msi WHERE id=$1`, r.PathValue("id"))
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		http.Error(w, "compra no encontrada", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func marcarCuota(w http.ResponseWriter, r *http.Request) {

@@ -110,12 +110,28 @@ html, body, #app { height: 100%; }
   color: var(--text-faint); font-size: 10px; text-decoration: none;
 }
 .nav-item.activo { color: var(--navy); font-weight: var(--weight-body-semibold); }
+.nav-fab-wrap { position: relative; }
 .nav-fab {
   width: 54px; height: 54px; border-radius: var(--radius-pill); background: var(--navy);
   display: flex; align-items: center; justify-content: center; margin-top: -24px;
-  box-shadow: var(--shadow-modal);
+  box-shadow: var(--shadow-modal); border: none; padding: 0; cursor: pointer;
 }
 .nav-fab svg { color: var(--cream); }
+.fab-menu {
+  position: absolute; bottom: 66px; left: 50%; transform: translateX(-50%);
+  background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal); padding: 6px; display: flex; flex-direction: column; width: max-content;
+  min-width: 220px;
+}
+/* display:flex de arriba le gana al [hidden] del navegador (misma especificidad,
+   el nuestro va después) — sin esto el menú queda visible siempre. */
+.fab-menu[hidden] { display: none; }
+.fab-menu a {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--radius-md);
+  font-size: 14px; font-weight: 500; color: var(--navy); text-decoration: none; white-space: nowrap;
+}
+.fab-menu a:hover { background: var(--surface-sunken); }
+.fab-menu svg { color: var(--teal-deep); flex-shrink: 0; }
 
 /* --- topbar con back / acciones ------------------------------------------ */
 .topbar-nav {

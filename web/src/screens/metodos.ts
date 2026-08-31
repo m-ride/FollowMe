@@ -1,4 +1,4 @@
-import { getMetodos, crearMetodo, type MetodoPago } from '../api';
+import { getMetodos, crearMetodo, actualizarMetodo, type MetodoPago } from '../api';
 import { money, esc } from '../format';
 import { iconoMetodo, refreshIcons } from '../icons';
 import { topbarBack } from '../chrome';
@@ -10,6 +10,30 @@ export async function renderMetodos(root: HTMLElement) {
   const tarjetas = metodos.filter((m) => m.tipo === 'credito');
   const otros = metodos.filter((m) => m.tipo !== 'credito');
 
+  const editarBtn = (id: number) =>
+    `<button type="button" class="icon-btn btn-editar" data-id="${id}" style="width:32px;height:32px;flex-shrink:0"><i data-lucide="pencil" style="width:14px;height:14px;"></i></button>`;
+
+  const formEditarTarjeta = (m: MetodoPago) => `
+    <div class="inline-form" data-editar="${m.id}" hidden>
+      <form class="form-editar" data-id="${m.id}">
+        <div class="campo"><div class="k">Nombre</div><input class="input-nombre" type="text" value="${esc(m.nombre)}" required /></div>
+        <div style="display:flex;gap:12px">
+          <div class="campo" style="flex:1"><div class="k">Límite</div><input class="input-limite" type="number" step="0.01" min="0" value="${m.limite ? (m.limite / 100).toFixed(2) : ''}" /></div>
+          <div class="campo" style="flex:1"><div class="k">Día de corte</div><input class="input-corte" type="number" min="1" max="31" value="${m.dia_corte ?? ''}" /></div>
+          <div class="campo" style="flex:1"><div class="k">Día de pago</div><input class="input-pago" type="number" min="1" max="31" value="${m.dia_pago ?? ''}" /></div>
+        </div>
+        <button class="btn-primario" type="submit"><i data-lucide="check" style="width:19px;height:19px;"></i>Guardar</button>
+      </form>
+    </div>`;
+
+  const formEditarSimple = (m: MetodoPago) => `
+    <div class="inline-form" data-editar="${m.id}" hidden>
+      <form class="form-editar" data-id="${m.id}">
+        <div class="campo"><div class="k">Nombre</div><input class="input-nombre" type="text" value="${esc(m.nombre)}" required /></div>
+        <button class="btn-primario" type="submit"><i data-lucide="check" style="width:19px;height:19px;"></i>Guardar</button>
+      </form>
+    </div>`;
+
   const tarjetaHtml = (m: MetodoPago) => `
     <div class="metodo-card">
       <div class="fila">
@@ -18,7 +42,9 @@ export async function renderMetodos(root: HTMLElement) {
           <div class="nombre">${esc(m.nombre)}</div>
           <div class="sub">corte ${m.dia_corte} · pago ${m.dia_pago}${m.limite ? ` · límite ${money(m.limite)}` : ''}</div>
         </div>
+        ${editarBtn(m.id)}
       </div>
+      ${formEditarTarjeta(m)}
     </div>`;
 
   const otroHtml = (m: MetodoPago) => `
@@ -26,7 +52,9 @@ export async function renderMetodos(root: HTMLElement) {
       <div class="fila">
         <div class="icono"><i data-lucide="${iconoMetodo(m.tipo)}" style="width:19px;height:19px;"></i></div>
         <div class="info"><div class="nombre">${esc(m.nombre)}</div><div class="sub">${m.tipo === 'debito' ? 'Débito' : 'Sin corte'}</div></div>
+        ${editarBtn(m.id)}
       </div>
+      ${formEditarSimple(m)}
     </div>`;
 
   root.innerHTML = `
@@ -67,6 +95,39 @@ export async function renderMetodos(root: HTMLElement) {
       </div>
     </div>
   `;
+  refreshIcons();
+
+  root.querySelectorAll<HTMLButtonElement>('.btn-editar').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const el = root.querySelector<HTMLDivElement>(`[data-editar="${btn.dataset.id}"]`)!;
+      el.hidden = !el.hidden;
+    });
+  });
+  root.querySelectorAll<HTMLFormElement>('.form-editar').forEach((form) => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = Number(form.dataset.id);
+      const nombre = form.querySelector<HTMLInputElement>('.input-nombre')!.value.trim();
+      if (!nombre) return;
+      const limiteEl = form.querySelector<HTMLInputElement>('.input-limite');
+      try {
+        await actualizarMetodo(id, {
+          nombre,
+          ...(limiteEl
+            ? {
+                limite: Math.round(parseFloat(limiteEl.value || '0') * 100),
+                dia_corte: Number(form.querySelector<HTMLInputElement>('.input-corte')!.value),
+                dia_pago: Number(form.querySelector<HTMLInputElement>('.input-pago')!.value),
+              }
+            : {}),
+        });
+        await renderMetodos(root);
+        refreshIcons();
+      } catch (err) {
+        alert((err as Error).message);
+      }
+    });
+  });
 
   let tipo: MetodoPago['tipo'] = 'efectivo';
   const formWrap = root.querySelector<HTMLDivElement>('#form-agregar')!;

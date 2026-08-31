@@ -1,4 +1,4 @@
-import { getResumen, crearAportacion } from '../api';
+import { getResumen, crearAportacion, actualizarRubro } from '../api';
 import { money, esc } from '../format';
 import { iconoRubro, refreshIcons } from '../icons';
 import { renderNav } from '../nav';
@@ -25,17 +25,28 @@ export async function renderAhorro(root: HTMLElement) {
               <div class="sub">${money(b.saldo)}${b.monto_objetivo ? ` de ${money(b.monto_objetivo)}` : ''}</div>
             </div>
             ${pct !== null ? `<span class="pct">${pct}%</span>` : ''}
+            <button type="button" class="icon-btn btn-editar-bolsa" data-id="${b.id}" style="width:32px;height:32px;flex-shrink:0"><i data-lucide="pencil" style="width:14px;height:14px;"></i></button>
           </div>
           ${pct !== null ? `<div class="progress" style="margin-top:12px"><div style="width:${pct}%"></div></div>` : ''}
+          <div class="inline-form" data-editar="${b.id}" hidden>
+            <form class="form-editar-bolsa" data-id="${b.id}">
+              <div class="campo"><div class="k">Nombre</div><input class="input-nombre" type="text" value="${esc(b.nombre)}" required /></div>
+              <div class="campo"><div class="k">Meta de ahorro (opcional)</div><input class="input-meta" type="number" step="0.01" min="0" value="${b.monto_objetivo ? (b.monto_objetivo / 100).toFixed(2) : ''}" /></div>
+              <button class="btn-primario" type="submit"><i data-lucide="check" style="width:19px;height:19px;"></i>Guardar</button>
+            </form>
+          </div>
         </div>`;
     })
     .join('');
 
   root.innerHTML = `
     <div class="screen">
-      <div style="padding:8px 4px 0">
-        <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;color:var(--text-muted)">ahorro</div>
-        <div style="font-family:var(--font-display);font-weight:700;font-size:24px;letter-spacing:-0.02em;margin-top:2px">Tus bolsas</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 4px 0">
+        <div>
+          <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;color:var(--text-muted)">ahorro</div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:24px;letter-spacing:-0.02em;margin-top:2px">Tus bolsas</div>
+        </div>
+        <a href="#/rubro/nuevo?tipo=ahorro" class="icon-btn oscuro"><i data-lucide="plus" style="width:20px;height:20px;"></i></a>
       </div>
       <div class="hero-mini" style="margin-top:var(--space-4)">
         <div class="k">Total ahorrado</div>
@@ -72,6 +83,29 @@ export async function renderAhorro(root: HTMLElement) {
     </div>
     ${renderNav('/ahorro')}
   `;
+  refreshIcons();
+
+  root.querySelectorAll<HTMLButtonElement>('.btn-editar-bolsa').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const el = root.querySelector<HTMLDivElement>(`[data-editar="${btn.dataset.id}"]`)!;
+      el.hidden = !el.hidden;
+    });
+  });
+  root.querySelectorAll<HTMLFormElement>('.form-editar-bolsa').forEach((form) => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = Number(form.dataset.id);
+      const nombre = form.querySelector<HTMLInputElement>('.input-nombre')!.value.trim();
+      const metaStr = form.querySelector<HTMLInputElement>('.input-meta')!.value;
+      if (!nombre) return;
+      await actualizarRubro(id, {
+        nombre,
+        ...(metaStr ? { monto_objetivo: Math.round(parseFloat(metaStr) * 100) } : {}),
+      });
+      await renderAhorro(root);
+      refreshIcons();
+    });
+  });
 
   if (bolsas.length === 0) return;
 

@@ -97,16 +97,28 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 
 const get = <T>(path: string) => req<T>(path);
 const post = <T>(path: string, body: unknown) => req<T>(path, { method: 'POST', body: JSON.stringify(body) });
+const patch = (path: string, body: unknown) => req<void>(path, { method: 'PATCH', body: JSON.stringify(body) });
+const del = (path: string) => req<void>(path, { method: 'DELETE' });
 
 export const getResumen = (periodo?: string) => get<Resumen>(`resumen${periodo ? `?periodo=${periodo}` : ''}`);
 export const getRubros = () => get<Rubro[]>('rubros');
+export const crearRubro = (r: Omit<Rubro, 'id'>) => post<Rubro>('rubros', r);
+export const actualizarRubro = (id: number, r: { nombre: string; monto_objetivo?: number }) =>
+  patch(`rubros/${id}`, r);
 export const getMetodos = () => get<MetodoPago[]>('metodos-pago');
 export const crearMetodo = (m: Omit<MetodoPago, 'id'>) => post<MetodoPago>('metodos-pago', m);
+export const actualizarMetodo = (
+  id: number,
+  m: { nombre: string; limite?: number; dia_corte?: number; dia_pago?: number }
+) => patch(`metodos-pago/${id}`, m);
 export const crearAportacion = (a: { rubro_id: number; fuente: 'yo' | 'pareja'; monto: number; periodo: string }) =>
   post('aportaciones', a);
+export const borrarAportacion = (id: number) => del(`aportaciones/${id}`);
 export const getGastos = (periodo?: string) => get<Gasto[]>(`gastos${periodo ? `?periodo=${periodo}` : ''}`);
 export const crearGasto = (g: Omit<Gasto, 'id'>) => post<Gasto>('gastos', g);
+export const borrarGasto = (id: number) => del(`gastos/${id}`);
 export const crearCompraMSI = (
   c: Omit<CompraMSI, 'id' | 'cuotas'>
 ) => post<CompraMSI>('compras-msi', c);
 export const getComprasMSI = () => get<CompraMSI[]>('compras-msi');
+export const borrarCompraMSI = (id: number) => del(`compras-msi/${id}`);

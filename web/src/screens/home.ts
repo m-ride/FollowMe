@@ -67,7 +67,7 @@ export async function renderHome(root: HTMLElement) {
         </div>
       </div>
 
-      <div class="seccion-label"><span>&lt;rubros · ${r.periodo}&gt;</span></div>
+      <div class="seccion-label"><span>&lt;rubros · ${r.periodo}&gt;</span><a href="#/rubro/nuevo" style="display:flex;align-items:center;gap:4px;color:var(--text-accent);font-size:12.5px;font-weight:500;text-decoration:none"><i data-lucide="plus" style="width:14px;height:14px;"></i>Nueva categoría</a></div>
       <div class="rubro-list">${rubros || '<div class="placeholder">Sin rubros todavía</div>'}</div>
     </div>
     ${renderNav('/')}
