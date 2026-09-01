@@ -25,7 +25,7 @@
   --surface-page: var(--cream);
   --surface-card: var(--white);
   --surface-sunken: #ECEBE4;
-  --text-body: var(--navy);
+  --text-default: var(--navy); /* not --text-body: typography.css already uses that name for a font-size, and its @import runs later, so it would silently win and turn this into an invalid color value */
   --text-muted: var(--navy-60);
   --text-faint: var(--navy-40);
   --text-accent: var(--teal-deep);  /* links, accent text on light bg */

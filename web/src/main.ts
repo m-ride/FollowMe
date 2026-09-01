@@ -13,10 +13,24 @@ import { renderAhorro } from './screens/ahorro';
 import { renderMetodos } from './screens/metodos';
 import { renderGastos } from './screens/gastos';
 import { renderSalud } from './screens/salud';
+import { renderDatos } from './screens/datos';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 
+// Fase 4: panel de escritorio. Se decide una sola vez al cargar la página — no hay
+// remount en vivo al cruzar el breakpoint, solo un reload (ver el listener abajo).
+// Es una herramienta personal, no un producto público: un reload al undockear la
+// laptop o rotar la tablet es una concesión aceptable frente a la complejidad de un
+// remount en caliente.
+const esEscritorio = matchMedia('(min-width: 900px)').matches;
+if (esEscritorio) document.body.dataset.mode = 'desktop';
+
 function iniciar() {
+  if (esEscritorio) {
+    import('./styles/desktop.css');
+    import('./desktop/shell').then(({ iniciarEscritorio }) => iniciarEscritorio(app));
+    return;
+  }
   startRouter(
     [
       { path: '/', render: renderHome },
@@ -29,6 +43,7 @@ function iniciar() {
       { path: '/ahorro', render: renderAhorro },
       { path: '/metodos', render: renderMetodos },
       { path: '/salud', render: renderSalud },
+      { path: '/datos', render: renderDatos },
     ],
     app,
     refreshIcons
@@ -40,6 +55,8 @@ if (tieneAcceso()) {
 } else {
   renderCandado(app, iniciar);
 }
+
+matchMedia('(min-width: 900px)').addEventListener('change', () => location.reload());
 
 // El menú del "+" central se maneja aquí (delegación sobre #app) en vez de en cada
 // pantalla, porque el nav (con el mismo botón) se repite igual en varias pantallas.

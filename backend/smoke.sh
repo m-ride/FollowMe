@@ -34,7 +34,37 @@ AVANCE=$(echo "$R" | jq --argjson id "$FONDO" '.ahorro[] | select(.id==$id) | .a
 TOTAL=$(echo "$R" | jq --argjson id "$TARJ" '[.compromiso_msi.meses[].por_tarjeta[] | select(.tarjeta_id==$id) | .monto] | add')
 [ "$TOTAL" = 100000 ] || { echo "compromiso $TOTAL != 100000"; exit 1; }
 
+# --- Fase 3 ---
+
+# fondo de emergencia: es un singleton (índice único) — limpiar cualquier rubro
+# marcado por una corrida anterior de este mismo script antes de marcar el propio,
+# para que esto sea rerunnable contra la misma DB persistente.
+PREV_FONDO=$(get rubros | jq -r '[.[] | select(.es_fondo_emergencia==true)][0]')
+if [ "$PREV_FONDO" != "null" ]; then
+  PREV_ID=$(echo "$PREV_FONDO" | jq -r .id)
+  PREV_NOMBRE=$(echo "$PREV_FONDO" | jq -r .nombre)
+  curl -sf -X PATCH "$API/rubros/$PREV_ID" -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+    -d "{\"nombre\":\"$PREV_NOMBRE\",\"es_fondo_emergencia\":false}" >/dev/null
+fi
+curl -sf -X PATCH "$API/rubros/$FONDO" -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+  -d '{"nombre":"Emergencia","monto_objetivo":6000000,"es_fondo_emergencia":true}' >/dev/null
+FONDO_RESP=$(get "resumen?periodo=$MES")
+FONDO_ID=$(echo "$FONDO_RESP" | jq '.fondo_emergencia.rubro_id')
+[ "$FONDO_ID" = "$FONDO" ] || { echo "fondo_emergencia.rubro_id $FONDO_ID != $FONDO"; exit 1; }
+
+# tendencia: el mes actual debe aparecer con al menos las aportaciones/gastos de esta corrida.
+TEND_MESES=$(get "tendencia?meses=3" | jq '.meses | length')
+[ "$TEND_MESES" = 3 ] || { echo "tendencia trajo $TEND_MESES meses, esperaba 3"; exit 1; }
+
+# aportaciones ahora tiene GET — debe listar al menos las que creó esta corrida.
+APORT_COUNT=$(get "aportaciones?periodo=$MES" | jq 'length')
+[ "$APORT_COUNT" -ge 3 ] || { echo "GET aportaciones trajo $APORT_COUNT, esperaba al menos 3"; exit 1; }
+
+# export: debe incluir el rubro marcado como fondo de emergencia.
+EXPORT_FONDO=$(get "export" | jq --argjson id "$FONDO" '.rubro[] | select(.id==$id) | .es_fondo_emergencia')
+[ "$EXPORT_FONDO" = "true" ] || { echo "export no trae es_fondo_emergencia=true en rubro $FONDO"; exit 1; }
+
 # sin token la API rechaza
 curl -sf -o /dev/null "$API/rubros" && { echo "la API respondió sin token"; exit 1; }
 
-echo "smoke OK — disponible=$DISP cuotas_mes=$CUOTA_MES compromiso=$TOTAL"
+echo "smoke OK — disponible=$DISP cuotas_mes=$CUOTA_MES compromiso=$TOTAL fondo_emergencia=$FONDO_ID tendencia_meses=$TEND_MESES"

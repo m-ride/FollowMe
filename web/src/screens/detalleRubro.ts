@@ -1,5 +1,5 @@
-import { getResumen, getGastos, getMetodos, crearAportacion, borrarGasto, actualizarRubro } from '../api';
-import { money, esc, fechaCorta } from '../format';
+import { getResumen, getGastos, getMetodos, crearAportacion, borrarGasto, actualizarRubro, getAportaciones } from '../api';
+import { money, esc, fechaCorta, mesAnterior } from '../format';
 import { iconoRubro, refreshIcons } from '../icons';
 import { topbarBack } from '../chrome';
 
@@ -15,6 +15,13 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
     root.innerHTML = `<div class="screen">${topbarBack('Rubro', '/')}<div class="placeholder">No se encontró ese rubro.</div></div>`;
     return;
   }
+
+  const [aportacionesEsteMes, aportacionesMesPasado] = await Promise.all([
+    getAportaciones(resumen.periodo),
+    getAportaciones(mesAnterior(resumen.periodo)),
+  ]);
+  const fuentesYaCubiertas = new Set(aportacionesEsteMes.filter((a) => a.rubro_id === id).map((a) => a.fuente));
+  const copiables = aportacionesMesPasado.filter((a) => a.rubro_id === id && !fuentesYaCubiertas.has(a.fuente));
 
   const total = r.aportado_yo + r.aportado_pareja;
   const usado = r.gastado + r.cuotas_msi;
@@ -80,9 +87,18 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
         </div>
       </div>
 
-      <button type="button" id="toggle-aportar" class="btn-fantasma" style="margin-top:var(--space-4)">
-        <i data-lucide="plus" style="width:18px;height:18px;"></i>Registrar aportación de este mes
-      </button>
+      <div style="display:flex;gap:8px;margin-top:var(--space-4)">
+        <button type="button" id="toggle-aportar" class="btn-fantasma" style="flex:1">
+          <i data-lucide="plus" style="width:18px;height:18px;"></i>Registrar aportación
+        </button>
+        ${
+          copiables.length > 0
+            ? `<button type="button" id="copiar-aportaciones" class="btn-fantasma" style="flex:1">
+                <i data-lucide="download" style="width:18px;height:18px;"></i>Copiar mes anterior
+              </button>`
+            : ''
+        }
+      </div>
       <div id="form-aportar" class="inline-form" hidden>
         <form id="fa">
           <div class="campo">
@@ -155,6 +171,11 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
       errorEl.textContent = (err as Error).message;
       errorEl.hidden = false;
     }
+  });
+
+  root.querySelector('#copiar-aportaciones')?.addEventListener('click', async () => {
+    await Promise.all(copiables.map((a) => crearAportacion({ rubro_id: id, fuente: a.fuente, monto: a.monto, periodo: periodoActual() })));
+    renderDetalleRubro(root, params);
   });
 
   root.querySelectorAll<HTMLButtonElement>('.btn-borrar').forEach((btn) => {

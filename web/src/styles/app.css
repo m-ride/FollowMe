@@ -104,6 +104,18 @@ html, body, #app { height: 100%; }
   margin-top: var(--space-7); text-align: center; color: var(--text-muted); font-size: var(--text-sm);
 }
 
+/* Fase 3: banner de alertas (MSI, utilización de crédito, rubro sobregirado). */
+.alerta-banner { display: flex; flex-direction: column; gap: 6px; margin-top: var(--space-3); }
+.alerta-banner a {
+  display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit;
+  background: var(--surface-card); border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--status-warn); border-radius: var(--radius-md);
+  padding: 10px 12px; font-size: var(--text-sm);
+}
+.alerta-banner a.error { border-left-color: var(--status-error); }
+.alerta-banner a i { flex-shrink: 0; color: var(--status-warn); }
+.alerta-banner a.error i { color: var(--status-error); }
+
 .bottom-nav {
   flex-shrink: 0; height: 80px; background: var(--surface-card);
   border-top: 1px solid var(--border-subtle);
@@ -159,7 +171,7 @@ html, body, #app { height: 100%; }
 .campo input, .campo select {
   width: 100%; height: var(--control-height-lg); background: var(--surface-card);
   border: 1px solid var(--border-default); border-radius: var(--radius-md);
-  padding: 0 var(--space-4); font-size: 14.5px; font-family: var(--font-body); color: var(--text-body);
+  padding: 0 var(--space-4); font-size: 14.5px; font-family: var(--font-body); color: var(--text-default);
   appearance: none;
 }
 .campo select { padding-right: 40px; }
@@ -182,7 +194,7 @@ html, body, #app { height: 100%; }
 .pill {
   height: 34px; padding: 0 14px; display: inline-flex; align-items: center; gap: 6px;
   border-radius: var(--radius-pill); background: var(--surface-card); border: 1px solid var(--border-default);
-  font-size: 13px; cursor: pointer; color: var(--text-body);
+  font-size: 13px; cursor: pointer; color: var(--text-default);
 }
 .pill.activa { background: var(--navy); color: var(--cream); border-color: var(--navy); }
 .pill-num { flex: 1; height: 40px; display: flex; align-items: center; justify-content: center;

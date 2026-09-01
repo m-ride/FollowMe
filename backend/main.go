@@ -45,6 +45,7 @@ func main() {
 	mux.HandleFunc("GET /api/rubros", listRubros)
 	mux.HandleFunc("POST /api/rubros", crearRubro)
 	mux.HandleFunc("PATCH /api/rubros/{id}", actualizarRubro)
+	mux.HandleFunc("GET /api/aportaciones", listAportaciones)
 	mux.HandleFunc("POST /api/aportaciones", crearAportacion)
 	mux.HandleFunc("DELETE /api/aportaciones/{id}", borrarAportacion)
 	mux.HandleFunc("GET /api/ingresos", listIngresos)
@@ -58,6 +59,10 @@ func main() {
 	mux.HandleFunc("DELETE /api/compras-msi/{id}", borrarCompraMSI)
 	mux.HandleFunc("PATCH /api/cuotas/{id}", marcarCuota)
 	mux.HandleFunc("GET /api/resumen", resumen)
+	mux.HandleFunc("GET /api/tendencia", tendencia)
+	mux.HandleFunc("GET /api/patrimonio-historico", patrimonioHistorico)
+	mux.HandleFunc("GET /api/export", exportar)
+	mux.HandleFunc("POST /api/import", importar)
 
 	port := cmp(os.Getenv("PORT"), "8080")
 	log.Println("escuchando en :" + port)
@@ -140,7 +145,7 @@ func malo(w http.ResponseWriter, err error) {
 // en el esquema, no duplicada en Go.
 func fallo(w http.ResponseWriter, err error) {
 	var pg *pgconn.PgError
-	if errors.As(err, &pg) && (pg.Code == "23514" || pg.Code == "23503" || pg.Code == "22001") {
+	if errors.As(err, &pg) && (pg.Code == "23514" || pg.Code == "23503" || pg.Code == "22001" || pg.Code == "23505") {
 		http.Error(w, pg.Message, http.StatusBadRequest)
 		return
 	}
@@ -238,11 +243,12 @@ func listMetodos(w http.ResponseWriter, r *http.Request) {
 // --- rubros -----------------------------------------------------------------
 
 type rubro struct {
-	ID            int64   `json:"id"`
-	Nombre        string  `json:"nombre"`
-	Tipo          string  `json:"tipo"`
-	MontoObjetivo *int64  `json:"monto_objetivo,omitempty"`
-	Clasificacion *string `json:"clasificacion,omitempty"`
+	ID                int64   `json:"id"`
+	Nombre            string  `json:"nombre"`
+	Tipo              string  `json:"tipo"`
+	MontoObjetivo     *int64  `json:"monto_objetivo,omitempty"`
+	Clasificacion     *string `json:"clasificacion,omitempty"`
+	EsFondoEmergencia bool    `json:"es_fondo_emergencia,omitempty"`
 }
 
 func crearRubro(w http.ResponseWriter, r *http.Request) {
@@ -255,8 +261,8 @@ func crearRubro(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err := db.QueryRow(r.Context(),
-		`INSERT INTO rubro (nombre, tipo, monto_objetivo, clasificacion) VALUES ($1,$2,$3,$4) RETURNING id`,
-		x.Nombre, x.Tipo, x.MontoObjetivo, x.Clasificacion).Scan(&x.ID)
+		`INSERT INTO rubro (nombre, tipo, monto_objetivo, clasificacion, es_fondo_emergencia) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+		x.Nombre, x.Tipo, x.MontoObjetivo, x.Clasificacion, x.EsFondoEmergencia).Scan(&x.ID)
 	if err != nil {
 		fallo(w, err)
 		return
@@ -268,9 +274,10 @@ func crearRubro(w http.ResponseWriter, r *http.Request) {
 // cambia qué significan sus aportaciones y gastos, no es un simple "editar".
 func actualizarRubro(w http.ResponseWriter, r *http.Request) {
 	body, ok := leer[struct {
-		Nombre        string  `json:"nombre"`
-		MontoObjetivo *int64  `json:"monto_objetivo,omitempty"`
-		Clasificacion *string `json:"clasificacion,omitempty"`
+		Nombre            string  `json:"nombre"`
+		MontoObjetivo     *int64  `json:"monto_objetivo,omitempty"`
+		Clasificacion     *string `json:"clasificacion,omitempty"`
+		EsFondoEmergencia bool    `json:"es_fondo_emergencia,omitempty"`
 	}](w, r)
 	if !ok {
 		return
@@ -280,8 +287,8 @@ func actualizarRubro(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tag, err := db.Exec(r.Context(),
-		`UPDATE rubro SET nombre=$1, monto_objetivo=$2, clasificacion=$3 WHERE id=$4`,
-		body.Nombre, body.MontoObjetivo, body.Clasificacion, r.PathValue("id"))
+		`UPDATE rubro SET nombre=$1, monto_objetivo=$2, clasificacion=$3, es_fondo_emergencia=$4 WHERE id=$5`,
+		body.Nombre, body.MontoObjetivo, body.Clasificacion, body.EsFondoEmergencia, r.PathValue("id"))
 	if err != nil {
 		fallo(w, err)
 		return
@@ -295,7 +302,7 @@ func actualizarRubro(w http.ResponseWriter, r *http.Request) {
 
 func listRubros(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query(r.Context(),
-		`SELECT id, nombre, tipo, monto_objetivo, clasificacion FROM rubro ORDER BY id`)
+		`SELECT id, nombre, tipo, monto_objetivo, clasificacion, es_fondo_emergencia FROM rubro ORDER BY id`)
 	if err != nil {
 		fallo(w, err)
 		return
@@ -304,7 +311,7 @@ func listRubros(w http.ResponseWriter, r *http.Request) {
 	out := []rubro{}
 	for rows.Next() {
 		var x rubro
-		if err := rows.Scan(&x.ID, &x.Nombre, &x.Tipo, &x.MontoObjetivo, &x.Clasificacion); err != nil {
+		if err := rows.Scan(&x.ID, &x.Nombre, &x.Tipo, &x.MontoObjetivo, &x.Clasificacion, &x.EsFondoEmergencia); err != nil {
 			fallo(w, err)
 			return
 		}
@@ -340,6 +347,33 @@ func crearAportacion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	responder(w, a)
+}
+
+func listAportaciones(w http.ResponseWriter, r *http.Request) {
+	periodo := r.URL.Query().Get("periodo")
+	if periodo != "" && !rePeriodo.MatchString(periodo) {
+		malo(w, errors.New("periodo debe ser YYYY-MM"))
+		return
+	}
+	rows, err := db.Query(r.Context(),
+		`SELECT id, rubro_id, fuente, monto, periodo FROM aportacion
+		 WHERE $1 = '' OR periodo = $1
+		 ORDER BY periodo DESC, id DESC`, periodo)
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	defer rows.Close()
+	out := []aportacion{}
+	for rows.Next() {
+		var a aportacion
+		if err := rows.Scan(&a.ID, &a.RubroID, &a.Fuente, &a.Monto, &a.Periodo); err != nil {
+			fallo(w, err)
+			return
+		}
+		out = append(out, a)
+	}
+	responder(w, out)
 }
 
 // borrarAportacion es la manera de corregir un monto mal capturado: se borra y se

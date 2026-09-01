@@ -1,0 +1,114 @@
+/* Fase 4: panel de escritorio. Todo acotado a body[data-mode="desktop"] — cero
+   impacto en el layout móvil, que nunca tiene ese atributo. */
+
+body[data-mode="desktop"] #app {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  align-items: start;
+  min-height: 100vh;
+}
+
+body[data-mode="desktop"] .bottom-nav { display: none; }
+
+body[data-mode="desktop"] .desktop-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-5) var(--space-3);
+  border-right: 1px solid var(--border-subtle);
+  background: var(--surface-card);
+}
+body[data-mode="desktop"] .desktop-brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--navy);
+  padding: 0 var(--space-3) var(--space-5);
+}
+body[data-mode="desktop"] .desktop-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: var(--text-sm);
+}
+body[data-mode="desktop"] .desktop-nav-item:hover { background: var(--surface-sunken); }
+body[data-mode="desktop"] .desktop-nav-item.activo { background: var(--surface-sunken); color: var(--navy); font-weight: 600; }
+
+body[data-mode="desktop"] .desktop-content {
+  padding: var(--space-6);
+  overflow-y: auto;
+  min-width: 0;
+}
+
+/* Pantallas reutilizadas de mobile (Salud/Métodos/Datos) tal cual, sólo acotadas
+   a un ancho legible en vez de estirarse a todo el panel. */
+body[data-mode="desktop"] .desktop-content > .screen { max-width: 640px; margin: 0 auto; }
+
+body[data-mode="desktop"] .desktop-titulo {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+  color: var(--navy);
+  margin-bottom: var(--space-5);
+}
+
+/* Grid de paneles del Dashboard. */
+body[data-mode="desktop"] .desktop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+body[data-mode="desktop"] .desktop-grid.full { grid-column: 1 / -1; }
+
+/* Tabla densa compartida (Movimientos/Presupuesto/MSI). */
+body[data-mode="desktop"] .tabla-wrap {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+body[data-mode="desktop"] table.tabla { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+body[data-mode="desktop"] table.tabla th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: var(--text-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+body[data-mode="desktop"] table.tabla th:hover { color: var(--navy); }
+body[data-mode="desktop"] table.tabla th .flecha { margin-left: 4px; opacity: 0.6; }
+body[data-mode="desktop"] table.tabla td { padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); color: var(--navy); }
+body[data-mode="desktop"] table.tabla tr:last-child td { border-bottom: none; }
+body[data-mode="desktop"] table.tabla tr:hover td { background: var(--surface-sunken); }
+body[data-mode="desktop"] table.tabla td.num { text-align: right; font-variant-numeric: tabular-nums; }
+body[data-mode="desktop"] table.tabla td.editable { cursor: text; }
+body[data-mode="desktop"] table.tabla td.editable input {
+  width: 100%; border: 1px solid var(--border-default); border-radius: var(--radius-sm);
+  padding: 4px 6px; font-size: var(--text-sm); font-family: inherit;
+}
+
+body[data-mode="desktop"] .tabla-filtros {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  padding: var(--space-3) 14px; border-bottom: 1px solid var(--border-subtle);
+}
+body[data-mode="desktop"] .tabla-filtros select,
+body[data-mode="desktop"] .tabla-filtros input {
+  border: 1px solid var(--border-default); border-radius: var(--radius-sm);
+  padding: 6px 8px; font-size: var(--text-sm); font-family: inherit; background: var(--surface-card);
+}

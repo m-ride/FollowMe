@@ -1,4 +1,4 @@
-# Finanzas (Fase 1 + 2)
+# Finanzas (Fase 1 + 2 + 3)
 
 Go + Postgres en el backend. Todo el dinero se maneja en **centavos** (enteros), nunca
 en flotantes. Frontend: PWA en TypeScript vanilla (sin framework) + Vite.
@@ -83,9 +83,9 @@ Todas las rutas piden `Authorization: Bearer $APP_TOKEN` cuando la variable est�
 |---|---|---|
 | POST/GET | `/api/metodos-pago` | `tipo`: efectivo \| debito \| credito. Crédito exige `limite`, `dia_corte`, `dia_pago` |
 | PATCH | `/api/metodos-pago/{id}` | Edita nombre/límite/corte/pago. `tipo` no se puede cambiar (ver más abajo) |
-| POST/GET | `/api/rubros` | `tipo`: gasto \| ahorro. Ahorro acepta `monto_objetivo` |
-| PATCH | `/api/rubros/{id}` | Edita nombre/monto_objetivo. `tipo` tampoco se puede cambiar |
-| POST | `/api/aportaciones` | `fuente`: yo \| pareja, `periodo`: `YYYY-MM` |
+| POST/GET | `/api/rubros` | `tipo`: gasto \| ahorro. Ahorro acepta `monto_objetivo`, `es_fondo_emergencia` |
+| PATCH | `/api/rubros/{id}` | Edita nombre/monto_objetivo/es_fondo_emergencia. `tipo` tampoco se puede cambiar |
+| POST/GET | `/api/aportaciones` | `fuente`: yo \| pareja, `periodo`: `YYYY-MM`. GET admite `?periodo=` |
 | DELETE | `/api/aportaciones/{id}` | Corregir un monto mal capturado es borrar y volver a capturar |
 | POST/GET | `/api/gastos` | `?periodo=YYYY-MM` filtra |
 | DELETE | `/api/gastos/{id}` | |
@@ -95,10 +95,15 @@ Todas las rutas piden `Authorization: Bearer $APP_TOKEN` cuando la variable est�
 | POST/GET | `/api/ingresos` | `?periodo=YYYY-MM` filtra |
 | DELETE | `/api/ingresos/{id}` | |
 | GET | `/api/resumen` | `?periodo=YYYY-MM` (default: mes actual) |
+| GET | `/api/tendencia` | `?meses=N` (default 12, tope 24). Ingreso/gasto/tasa de ahorro por mes, meses sin actividad salen en 0 |
+| GET | `/api/patrimonio-historico` | `?meses=N`. Snapshot hacia adelante únicamente — ver Fase 3 abajo |
+| GET | `/api/export` | Respaldo completo en un JSON (las 7 tablas) |
+| POST | `/api/import` | Reemplaza TODOS los datos con el JSON enviado (mismo formato que `/api/export`), transaccional |
 
 `/api/resumen` trae todo: disponible por rubro, avance de ahorro, compromiso MSI a 6
 meses, y (Fase 2) `ingreso_total`, `tarjetas[]` (saldo/% utilización) y `salud`
-(tasa de ahorro, % ingreso comprometido en MSI, patrimonio neto, gasto fijo/discrecional).
+(tasa de ahorro, % ingreso comprometido en MSI, patrimonio neto, gasto fijo/discrecional);
+(Fase 3) `fondo_emergencia` (ausente si ningún rubro está marcado).
 
 **Por qué no hay `PATCH`/`DELETE` para todo:** rubro y método de pago son configuración
 (su nombre, límite o meta cambian con el tiempo sin que tenga sentido borrar y
@@ -106,6 +111,40 @@ recrear), así que llevan edición real. Gasto, aportación y compra MSI son mov
 — corregir uno mal capturado es borrarlo y volver a capturarlo, no editarlo in situ.
 `tipo` es inmutable en ambos editables: pasar un rubro de gasto a ahorro (o un método
 de débito a crédito) cambia qué campos son válidos, no es un simple cambio de nombre.
+
+## Fase 3 — alertas, tendencia, fondo de emergencia, patrimonio histórico, export/import
+Extiende `/salud` en vez de fragmentar en más pantallas: banner de alertas (arriba de
+Home y de Salud), gráfico de tendencia (últimos 6-12 meses, reutiliza el mismo
+`.bar-chart` que ya usaba el compromiso MSI en `/msi`), tarjeta de fondo de emergencia,
+tira de patrimonio histórico. Nueva pantalla `/datos` (enlazada desde Home) para
+exportar/importar.
+
+- **Alertas**: sin endpoint nuevo — se calculan en el cliente (`web/src/alertas.ts`)
+  reutilizando los mismos umbrales que ya estaban coloreados en el código: guardrail MSI
+  20%/30%, utilización de crédito 50%/80%, rubro sobregirado 90%/100%. Un solo lugar
+  define estos números ahora; `home.ts`/`salud.ts` los importan en vez de repetirlos.
+- **Fondo de emergencia**: un rubro de tipo `ahorro` se marca con
+  `es_fondo_emergencia` (checkbox en `/ahorro`, editar bolsa). Un índice único parcial
+  en la DB garantiza como máximo uno marcado — si se intenta marcar un segundo, la API
+  responde 400 y el formulario muestra el error, no revienta la pantalla. El objetivo
+  (3-6 meses) se calcula del gasto fijo promedio de los últimos 3 meses calendario
+  completos (no incluye el mes en curso, todavía incompleto).
+- **Patrimonio histórico**: snapshot hacia adelante únicamente — se graba cada vez que
+  `/api/resumen` se consulta para el mes calendario actual del servidor (nunca al
+  consultar periodos pasados/futuros, para no corromper el histórico), y se congela al
+  cruzar de mes. No hay reconstrucción retroactiva: el histórico arranca el día que esto
+  se desplegó, no antes.
+- **"Copiar mes anterior"**: en `/salud` (ingresos) y en el detalle de un rubro de gasto
+  (aportaciones) — un atajo de un clic que prellena los mismos montos/fuentes del mes
+  pasado que aún no tengan equivalente este mes (deduplicado por `fuente`), reutilizando
+  los mismos POST que ya existían. No es un motor de recurrencia/scheduling.
+- **Export/Import**: `GET /api/export` arma un JSON con las 7 tablas reutilizando las
+  mismas queries que los endpoints de lista. `POST /api/import` reemplaza TODO
+  (`TRUNCATE` + `INSERT` preservando los IDs originales + `setval` de cada secuencia)
+  dentro de una transacción — todo o nada, no una fusión. El frontend (`/datos`) exige
+  un `confirm()` explícito antes de restaurar. El CSV de movimientos (para Excel) es
+  puro cliente, sin endpoint: junta gasto+aportación+ingreso en un solo archivo con
+  columna `tipo`.
 
 ## Decisiones que el plan dejaba abiertas
 - **`compra_msi.rubro_id`**: el plan dice que "la cuota impacta el rubro" pero el modelo

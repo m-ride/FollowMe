@@ -34,6 +34,7 @@ export interface BolsaAhorro {
   saldo: number;
   monto_objetivo?: number;
   avance_pct?: number;
+  es_fondo_emergencia?: boolean;
 }
 
 export interface CompromisoTarjeta {
@@ -48,6 +49,15 @@ export interface MesMSI {
   por_tarjeta: CompromisoTarjeta[];
 }
 
+export interface FondoEmergencia {
+  rubro_id: number;
+  saldo: number;
+  gasto_fijo_promedio_mensual: number;
+  objetivo_min: number;
+  objetivo_max: number;
+  avance_pct_min?: number;
+}
+
 export interface Resumen {
   periodo: string;
   rubros: RubroResumen[];
@@ -55,6 +65,7 @@ export interface Resumen {
   ingreso_total: number;
   tarjetas: TarjetaSalud[];
   salud: Salud;
+  fondo_emergencia?: FondoEmergencia;
   compromiso_msi: { meses: MesMSI[]; total: number };
 }
 
@@ -64,6 +75,7 @@ export interface Rubro {
   tipo: 'gasto' | 'ahorro';
   monto_objetivo?: number;
   clasificacion?: 'fijo' | 'discrecional';
+  es_fondo_emergencia?: boolean;
 }
 
 export interface Ingreso {
@@ -71,6 +83,41 @@ export interface Ingreso {
   fuente: string;
   monto: number;
   periodo: string;
+}
+
+export interface Aportacion {
+  id: number;
+  rubro_id: number;
+  fuente: 'yo' | 'pareja';
+  monto: number;
+  periodo: string;
+}
+
+export interface MesTendencia {
+  periodo: string;
+  ingreso: number;
+  gasto_fijo: number;
+  gasto_discrecional: number;
+  gasto_sin_clasificar: number;
+  gasto_total: number;
+  tasa_ahorro?: number;
+}
+
+export interface PuntoPatrimonio {
+  periodo: string;
+  monto: number;
+}
+
+export interface Respaldo {
+  version: number;
+  generado_en: string;
+  metodo_pago: MetodoPago[];
+  rubro: Rubro[];
+  aportacion: Aportacion[];
+  gasto: Gasto[];
+  compra_msi: CompraMSI[];
+  ingreso: Ingreso[];
+  patrimonio_historico: { periodo: string; monto: number; registrado_en: string }[];
 }
 
 export interface MetodoPago {
@@ -140,7 +187,7 @@ export const getRubros = () => get<Rubro[]>('rubros');
 export const crearRubro = (r: Omit<Rubro, 'id'>) => post<Rubro>('rubros', r);
 export const actualizarRubro = (
   id: number,
-  r: { nombre: string; monto_objetivo?: number; clasificacion?: 'fijo' | 'discrecional' }
+  r: { nombre: string; monto_objetivo?: number; clasificacion?: 'fijo' | 'discrecional'; es_fondo_emergencia?: boolean }
 ) => patch(`rubros/${id}`, r);
 export const getMetodos = () => get<MetodoPago[]>('metodos-pago');
 export const crearMetodo = (m: Omit<MetodoPago, 'id'>) => post<MetodoPago>('metodos-pago', m);
@@ -148,6 +195,8 @@ export const actualizarMetodo = (
   id: number,
   m: { nombre: string; limite?: number; dia_corte?: number; dia_pago?: number }
 ) => patch(`metodos-pago/${id}`, m);
+export const getAportaciones = (periodo?: string) =>
+  get<Aportacion[]>(`aportaciones${periodo ? `?periodo=${periodo}` : ''}`);
 export const crearAportacion = (a: { rubro_id: number; fuente: 'yo' | 'pareja'; monto: number; periodo: string }) =>
   post('aportaciones', a);
 export const borrarAportacion = (id: number) => del(`aportaciones/${id}`);
@@ -162,3 +211,10 @@ export const borrarCompraMSI = (id: number) => del(`compras-msi/${id}`);
 export const getIngresos = (periodo?: string) => get<Ingreso[]>(`ingresos${periodo ? `?periodo=${periodo}` : ''}`);
 export const crearIngreso = (i: Omit<Ingreso, 'id'>) => post<Ingreso>('ingresos', i);
 export const borrarIngreso = (id: number) => del(`ingresos/${id}`);
+
+export const getTendencia = (meses?: number) =>
+  get<{ meses: MesTendencia[] }>(`tendencia${meses ? `?meses=${meses}` : ''}`);
+export const getPatrimonioHistorico = (meses?: number) =>
+  get<{ meses: PuntoPatrimonio[] }>(`patrimonio-historico${meses ? `?meses=${meses}` : ''}`);
+export const getExport = () => get<Respaldo>('export');
+export const importarDatos = (r: Respaldo) => post<void>('import', r);

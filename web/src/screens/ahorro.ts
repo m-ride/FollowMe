@@ -32,6 +32,13 @@ export async function renderAhorro(root: HTMLElement) {
             <form class="form-editar-bolsa" data-id="${b.id}">
               <div class="campo"><div class="k">Nombre</div><input class="input-nombre" type="text" value="${esc(b.nombre)}" required /></div>
               <div class="campo"><div class="k">Meta de ahorro (opcional)</div><input class="input-meta" type="number" step="0.01" min="0" value="${b.monto_objetivo ? (b.monto_objetivo / 100).toFixed(2) : ''}" /></div>
+              <div class="campo">
+                <label class="chico" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                  <input class="input-fondo" type="checkbox" ${b.es_fondo_emergencia ? 'checked' : ''} />
+                  Es tu fondo de emergencia (solo puede haber una)
+                </label>
+              </div>
+              <div class="error-msg error-msg-bolsa" hidden></div>
               <button class="btn-primario" type="submit"><i data-lucide="check" style="width:19px;height:19px;"></i>Guardar</button>
             </form>
           </div>
@@ -99,13 +106,23 @@ export async function renderAhorro(root: HTMLElement) {
       const id = Number(form.dataset.id);
       const nombre = form.querySelector<HTMLInputElement>('.input-nombre')!.value.trim();
       const metaStr = form.querySelector<HTMLInputElement>('.input-meta')!.value;
+      const esFondo = form.querySelector<HTMLInputElement>('.input-fondo')!.checked;
       if (!nombre) return;
-      await actualizarRubro(id, {
-        nombre,
-        ...(metaStr ? { monto_objetivo: Math.round(parseFloat(metaStr) * 100) } : {}),
-      });
-      await renderAhorro(root);
-      refreshIcons();
+      const errorEl = form.querySelector<HTMLDivElement>('.error-msg-bolsa');
+      try {
+        await actualizarRubro(id, {
+          nombre,
+          es_fondo_emergencia: esFondo,
+          ...(metaStr ? { monto_objetivo: Math.round(parseFloat(metaStr) * 100) } : {}),
+        });
+        await renderAhorro(root);
+        refreshIcons();
+      } catch (err) {
+        if (errorEl) {
+          errorEl.textContent = (err as Error).message;
+          errorEl.hidden = false;
+        }
+      }
     });
   });
 

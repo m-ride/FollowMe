@@ -35,11 +35,23 @@ type salud struct {
 }
 
 type bolsaAhorro struct {
-	ID            int64    `json:"id"`
-	Nombre        string   `json:"nombre"`
-	Saldo         int64    `json:"saldo"`
-	MontoObjetivo *int64   `json:"monto_objetivo,omitempty"`
-	AvancePct     *float64 `json:"avance_pct,omitempty"`
+	ID                int64    `json:"id"`
+	Nombre            string   `json:"nombre"`
+	Saldo             int64    `json:"saldo"`
+	MontoObjetivo     *int64   `json:"monto_objetivo,omitempty"`
+	AvancePct         *float64 `json:"avance_pct,omitempty"`
+	EsFondoEmergencia bool     `json:"es_fondo_emergencia,omitempty"`
+}
+
+// fondoEmergencia (Fase 3): objetivo 3-6 meses de gasto fijo promedio, sobre el
+// rubro de ahorro marcado con es_fondo_emergencia (a lo más uno, por índice único).
+type fondoEmergencia struct {
+	RubroID                  int64    `json:"rubro_id"`
+	Saldo                    int64    `json:"saldo"`
+	GastoFijoPromedioMensual int64    `json:"gasto_fijo_promedio_mensual"`
+	ObjetivoMin              int64    `json:"objetivo_min"`
+	ObjetivoMax              int64    `json:"objetivo_max"`
+	AvancePctMin             *float64 `json:"avance_pct_min,omitempty"`
 }
 
 type mesMSI struct {
@@ -97,7 +109,7 @@ func resumen(w http.ResponseWriter, r *http.Request) {
 
 	// Ahorro: saldo acumulado de siempre (aportaciones − retiros), no se resetea.
 	rows, err = db.Query(ctx, `
-		SELECT r.id, r.nombre, r.monto_objetivo,
+		SELECT r.id, r.nombre, r.monto_objetivo, r.es_fondo_emergencia,
 		  COALESCE((SELECT SUM(a.monto) FROM aportacion a WHERE a.rubro_id=r.id),0)
 		- COALESCE((SELECT SUM(g.monto) FROM gasto g     WHERE g.rubro_id=r.id),0)
 		FROM rubro r WHERE r.tipo='ahorro' ORDER BY r.id`)
@@ -108,7 +120,7 @@ func resumen(w http.ResponseWriter, r *http.Request) {
 	ahorro := []bolsaAhorro{}
 	for rows.Next() {
 		var b bolsaAhorro
-		if err := rows.Scan(&b.ID, &b.Nombre, &b.MontoObjetivo, &b.Saldo); err != nil {
+		if err := rows.Scan(&b.ID, &b.Nombre, &b.MontoObjetivo, &b.EsFondoEmergencia, &b.Saldo); err != nil {
 			rows.Close()
 			fallo(w, err)
 			return
@@ -237,9 +249,10 @@ func resumen(w http.ResponseWriter, r *http.Request) {
 		totalAhorro += b.Saldo
 	}
 	gastoTotalMes := gastoFijo + gastoDiscrecional + gastoSinClasificar
+	patrimonioNeto := totalAhorro - pasivoTotal
 
 	sd := salud{
-		PatrimonioNeto:     totalAhorro - pasivoTotal,
+		PatrimonioNeto:     patrimonioNeto,
 		GastoFijo:          gastoFijo,
 		GastoDiscrecional:  gastoDiscrecional,
 		GastoSinClasificar: gastoSinClasificar,
@@ -258,13 +271,59 @@ func resumen(w http.ResponseWriter, r *http.Request) {
 		sd.PctIngresoComprometidoMSI = &pc
 	}
 
+	// Fondo de emergencia (Fase 3): objetivo 3-6 meses de gasto fijo promedio de los
+	// últimos 3 meses calendario completos (no incluye el mes en curso, aún incompleto).
+	var fondo *fondoEmergencia
+	for _, b := range ahorro {
+		if !b.EsFondoEmergencia {
+			continue
+		}
+		var promedio int64
+		if err := db.QueryRow(ctx, `
+			SELECT COALESCE(AVG(t),0)::bigint FROM (
+			  SELECT SUM(g.monto) t FROM gasto g JOIN rubro r ON r.id=g.rubro_id
+			  WHERE r.clasificacion='fijo'
+			    AND g.fecha >= date_trunc('month', now()) - interval '3 months'
+			    AND g.fecha <  date_trunc('month', now())
+			  GROUP BY to_char(g.fecha,'YYYY-MM')
+			) x`).Scan(&promedio); err != nil {
+			fallo(w, err)
+			return
+		}
+		f := &fondoEmergencia{
+			RubroID: b.ID, Saldo: b.Saldo, GastoFijoPromedioMensual: promedio,
+			ObjetivoMin: promedio * 3, ObjetivoMax: promedio * 6,
+		}
+		if f.ObjetivoMin > 0 {
+			pct := float64(f.Saldo) / float64(f.ObjetivoMin) * 100
+			f.AvancePctMin = &pct
+		}
+		fondo = f
+		break
+	}
+
+	// Snapshot de patrimonio neto hacia adelante: solo se graba cuando se consulta el
+	// mes calendario actual del servidor, para no corromper el histórico consultando
+	// periodos pasados/futuros. El valor del mes en curso se sigue refinando en cada
+	// llamada y se congela solo al cruzar de mes.
+	if periodo == time.Now().Format("2006-01") {
+		if _, err := db.Exec(ctx, `
+			INSERT INTO patrimonio_historico (periodo, monto) VALUES ($1, $2)
+			ON CONFLICT (periodo) DO UPDATE SET monto=EXCLUDED.monto, registrado_en=now()`,
+			periodo, patrimonioNeto); err != nil {
+			fallo(w, err)
+			return
+		}
+	}
+
 	responder(w, map[string]any{
-		"periodo":       periodo,
-		"rubros":        rubros,
-		"ahorro":        ahorro,
-		"ingreso_total": ingresoTotal,
-		"tarjetas":      tarjetas,
-		"salud":         sd,
+		"periodo":          periodo,
+		"rubros":           rubros,
+		"ahorro":           ahorro,
+		"ingreso_total":    ingresoTotal,
+		"tarjetas":         tarjetas,
+		"salud":            sd,
+		"fondo_emergencia": fondo,
 		"compromiso_msi": map[string]any{
 			"meses": meses,
 			"total": total,

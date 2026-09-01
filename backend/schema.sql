@@ -21,6 +21,11 @@ CREATE TABLE IF NOT EXISTS rubro (
 -- Fase 2: clasificación fijo/discrecional, solo aplica a tipo=gasto. ALTER (no en el
 -- CREATE) porque ya hay filas reales en producción — CREATE IF NOT EXISTS no las toca.
 ALTER TABLE rubro ADD COLUMN IF NOT EXISTS clasificacion TEXT CHECK (clasificacion IN ('fijo','discrecional'));
+-- Fase 3: fondo de emergencia, un rubro de ahorro marcado con reglas propias (prioridad,
+-- objetivo 3-6 meses de gasto fijo). El índice único parcial garantiza como máximo uno
+-- marcado sin validarlo a mano en Go.
+ALTER TABLE rubro ADD COLUMN IF NOT EXISTS es_fondo_emergencia BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_rubro_fondo_emergencia ON rubro(es_fondo_emergencia) WHERE es_fondo_emergencia;
 
 CREATE TABLE IF NOT EXISTS aportacion (
   id       BIGSERIAL PRIMARY KEY,
@@ -65,6 +70,14 @@ CREATE TABLE IF NOT EXISTS ingreso (
   fuente  TEXT NOT NULL,
   monto   BIGINT NOT NULL CHECK (monto > 0),
   periodo CHAR(7) NOT NULL  -- 'YYYY-MM'
+);
+
+-- Fase 3: snapshot de patrimonio neto, hacia adelante únicamente (sin reconstrucción
+-- retroactiva — no hay datos históricos de balances antes de que esto existiera).
+CREATE TABLE IF NOT EXISTS patrimonio_historico (
+  periodo       CHAR(7) PRIMARY KEY,
+  monto         BIGINT NOT NULL,
+  registrado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_gasto_fecha      ON gasto(fecha);

@@ -3,6 +3,7 @@ import { money, esc, mesLargo } from '../format';
 import { iconoRubro } from '../icons';
 import { NOMBRE, PAREJA_NOMBRE } from '../config';
 import { renderNav } from '../nav';
+import { calcularAlertas, renderAlertasBanner, UMBRAL_RUBRO_WARN, UMBRAL_RUBRO_ERROR, UMBRAL_MSI_ERROR } from '../alertas';
 
 export async function renderHome(root: HTMLElement) {
   root.innerHTML = `<div class="screen"><div class="placeholder">Cargando…</div></div>`;
@@ -19,7 +20,7 @@ export async function renderHome(root: HTMLElement) {
       const total = x.aportado_yo + x.aportado_pareja;
       const usado = x.gastado + x.cuotas_msi;
       const pct = total > 0 ? (usado / total) * 100 : 0;
-      const estado = pct >= 100 ? 'error' : pct >= 90 ? 'warn' : 'ok';
+      const estado = pct >= UMBRAL_RUBRO_ERROR ? 'error' : pct >= UMBRAL_RUBRO_WARN ? 'warn' : 'ok';
       return { x, pct, estado, total, usado };
     })
     // Los rubros en problemas (sobrepasado/ajustado) van primero — si no, el más
@@ -45,6 +46,8 @@ export async function renderHome(root: HTMLElement) {
     })
     .join('');
 
+  const alertas = calcularAlertas(r);
+
   root.innerHTML = `
     <div class="screen">
       <div class="topbar">
@@ -55,9 +58,12 @@ export async function renderHome(root: HTMLElement) {
         <div style="display:flex;gap:8px">
           <a href="#/salud" class="icon-btn"><i data-lucide="heart-pulse" style="width:18px;height:18px;"></i></a>
           <a href="#/metodos" class="icon-btn"><i data-lucide="credit-card" style="width:18px;height:18px;"></i></a>
+          <a href="#/datos" class="icon-btn"><i data-lucide="download" style="width:18px;height:18px;"></i></a>
           <div class="bell"><i data-lucide="bell" style="width:19px;height:19px;"></i></div>
         </div>
       </div>
+
+      ${renderAlertasBanner(alertas)}
 
       <a href="#/salud" style="text-decoration:none;color:inherit;display:block">
         <div class="hero-card">
@@ -68,7 +74,7 @@ export async function renderHome(root: HTMLElement) {
             <div class="stat"><div class="k">MSI este mes</div><div class="v">${money(msiEsteMes)}</div></div>
             ${
               r.salud.pct_ingreso_comprometido_msi !== undefined
-                ? `<div class="stat"><div class="k">Ingreso comprometido</div><div class="v" style="color:${r.salud.pct_ingreso_comprometido_msi >= 30 ? '#E8867A' : 'inherit'}">${r.salud.pct_ingreso_comprometido_msi.toFixed(0)}%</div></div>`
+                ? `<div class="stat"><div class="k">Ingreso comprometido</div><div class="v" style="color:${r.salud.pct_ingreso_comprometido_msi >= UMBRAL_MSI_ERROR ? '#E8867A' : 'inherit'}">${r.salud.pct_ingreso_comprometido_msi.toFixed(0)}%</div></div>`
                 : ''
             }
           </div>

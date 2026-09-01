@@ -18,6 +18,12 @@ export const mesLargo = (periodo: string): string => {
   return `${mes} ${periodo.slice(0, 4)}`;
 };
 
+// "Copiar mes anterior" (Fase 3) necesita el YYYY-MM previo al periodo dado.
+export const mesAnterior = (periodo: string): string => {
+  const [y, m] = periodo.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7);
+};
+
 const ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 // Nombres de rubro/tarjeta vienen del usuario y se insertan como HTML (innerHTML) — sin
 // esto, un nombre con "<" rompería el layout o (self-XSS) ejecutaría markup.
