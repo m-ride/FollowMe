@@ -6,8 +6,7 @@ const ITEMS = [
 ];
 
 const ACCIONES = [
-  { href: '#/gastos/nuevo', icon: 'receipt-text', label: 'Nuevo gasto' },
-  { href: '#/salud?nuevo=1', icon: 'banknote', label: 'Nuevo ingreso' },
+  { href: '#/gastos/nuevo', icon: 'receipt-text', label: 'Nuevo' },
   { href: '#/rubro/nuevo', icon: 'tag', label: 'Nueva categoría' },
   { href: '#/rubro/nuevo?tipo=ahorro', icon: 'piggy-bank', label: 'Nueva bolsa de ahorro' },
   { href: '#/msi/nuevo', icon: 'credit-card', label: 'Compra a meses' },

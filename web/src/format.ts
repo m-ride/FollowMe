@@ -24,6 +24,8 @@ export const mesAnterior = (periodo: string): string => {
   return new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7);
 };
 
+export const periodoActual = (): string => new Date().toISOString().slice(0, 7);
+
 const ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 // Nombres de rubro/tarjeta vienen del usuario y se insertan como HTML (innerHTML) — sin
 // esto, un nombre con "<" rompería el layout o (self-XSS) ejecutaría markup.

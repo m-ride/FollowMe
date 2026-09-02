@@ -3,7 +3,7 @@ import {
   House, ReceiptText, Plus, CreditCard, PiggyBank, Bell,
   ShoppingCart, Utensils, CarFront, Tv, HeartPulse, Shirt, ShieldCheck, Plane, Wallet,
   ChevronLeft, Check, ChevronDown, Landmark, Banknote, Tag, Trash2, Pencil, Lock,
-  Download, Upload, Table, TriangleAlert, TrendingUp,
+  Download, Upload, Table, TriangleAlert, TrendingUp, Info,
 } from 'lucide';
 
 // createIcons hace toPascalCase(data-lucide) y busca esa clave: las claves aquí
@@ -12,7 +12,7 @@ const ICONS = {
   House, ReceiptText, Plus, CreditCard, PiggyBank, Bell,
   ShoppingCart, Utensils, CarFront, Tv, HeartPulse, Shirt, ShieldCheck, Plane, Wallet,
   ChevronLeft, Check, ChevronDown, Landmark, Banknote, Tag, Trash2, Pencil, Lock,
-  Download, Upload, Table, TriangleAlert, TrendingUp,
+  Download, Upload, Table, TriangleAlert, TrendingUp, Info,
 };
 
 // Cualquier pantalla que se re-renderiza a sí misma (fuera del router, tras guardar
