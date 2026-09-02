@@ -63,7 +63,12 @@ export async function renderDashboard(root: HTMLElement) {
     .join('');
 
   root.innerHTML = `
-    <div class="desktop-titulo">Dashboard · ${mesLargo(resumen.periodo)}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="desktop-titulo" style="margin-bottom:0">Dashboard · ${mesLargo(resumen.periodo)}</div>
+      <a href="#/salud" class="btn-fantasma" style="width:auto;padding:8px 16px;margin-bottom:var(--space-5)">
+        <i data-lucide="trending-up" style="width:16px;height:16px;"></i>Ver análisis completo
+      </a>
+    </div>
     ${renderAlertasBanner(alertas)}
 
     <div class="desktop-grid">
@@ -105,7 +110,7 @@ export async function renderDashboard(root: HTMLElement) {
         <div class="rubro-list">${ahorroHtml || '<div class="placeholder">Sin bolsas todavía</div>'}</div>
       </div>
       <div>
-        <div class="seccion-label"><span>&lt;tasa de ahorro · ${tendencia.meses.length} meses&gt; · <a href="#/salud" style="font-weight:400;text-transform:none;letter-spacing:0">ver todas las métricas →</a></span></div>
+        <div class="seccion-label"><span>&lt;tasa de ahorro · ${tendencia.meses.length} meses&gt;</span></div>
         <div class="bar-chart"><div class="cols">${barrasTendencia}</div></div>
       </div>
     </div>
