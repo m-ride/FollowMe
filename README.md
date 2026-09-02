@@ -14,10 +14,18 @@ La API queda en `http://localhost:8081/api`, la base en el puerto `5433`.
 `./backend/seed-demo.sh` siembra datos de demo realistas (varios rubros, tarjetas,
 bolsas de ahorro con avance, un rubro sobrepasado a propósito) para revisar el
 frontend con algo parecido a uso real, no con los datos desechables de `smoke.sh`.
-Corre `smoke.sh` después y vas a mezclar ambos — si quieres la demo limpia, trunca la
-DB primero (`docker exec followme-db-1 psql -U postgres -d finanzas -c "TRUNCATE
-cuota_msi, compra_msi, gasto, aportacion, ingreso, rubro, metodo_pago RESTART IDENTITY
-CASCADE;"`).
+Corre `smoke.sh` después y vas a mezclar ambos — si quieres la demo limpia, vacía la
+DB primero con el propio endpoint de restaurar (mismo TRUNCATE que usa `/api/import`,
+sin necesitar acceso directo al contenedor de Postgres) y vuelve a sembrar:
+```bash
+curl -s -X POST -H "Authorization: Bearer dev" -H "Content-Type: application/json" \
+  -d '{}' http://localhost:8081/api/import
+APP_TOKEN=dev ./backend/seed-demo.sh
+```
+
+`./backend/seed-historico.sh` corre después de `seed-demo.sh` y backfilla 2 meses
+adicionales (con montos que varían un poco) sobre los mismos rubros/métodos, para
+revisar `/api/tendencia` con 3 meses reales en vez de uno solo.
 
 ## Frontend — correr en local
 ```bash
