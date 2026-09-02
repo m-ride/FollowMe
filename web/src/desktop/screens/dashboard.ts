@@ -63,10 +63,15 @@ export async function renderDashboard(root: HTMLElement) {
     .join('');
 
   root.innerHTML = `
-    <div class="desktop-titulo">Dashboard · ${mesLargo(resumen.periodo)}</div>
-    <div class="desktop-grid">
-      <div class="desktop-grid full">${renderAlertasBanner(alertas)}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="desktop-titulo" style="margin-bottom:0">Dashboard · ${mesLargo(resumen.periodo)}</div>
+      <a href="#/salud" class="btn-fantasma" style="width:auto;padding:8px 16px;margin-bottom:var(--space-5)">
+        <i data-lucide="trending-up" style="width:16px;height:16px;"></i>Ver análisis completo
+      </a>
+    </div>
+    ${renderAlertasBanner(alertas)}
 
+    <div class="desktop-grid">
       <div class="stat-box">
         <div class="label">&lt;disponible este mes&gt;</div>
         <div class="grande">${money(totalDisponible)}</div>
@@ -88,18 +93,14 @@ export async function renderDashboard(root: HTMLElement) {
         <div class="chico">${resumen.salud.pct_ingreso_comprometido_msi !== undefined ? `${resumen.salud.pct_ingreso_comprometido_msi.toFixed(0)}% del ingreso` : '—'}</div>
       </div>
       <div class="stat-box">
-        <div class="label">&lt;gasto vs. mes pasado&gt;</div>
-        <div class="grande" style="color:${deltaGasto.color}">${deltaGasto.texto}</div>
+        <div class="label">&lt;vs. mes pasado&gt;</div>
+        <div class="fila-kv"><span class="k">Gasto</span><span class="v" style="color:${deltaGasto.color}">${deltaGasto.texto}</span></div>
+        <div class="fila-kv" style="margin-top:8px"><span class="k">Ingreso</span><span class="v" style="color:${deltaIngreso.color}">${deltaIngreso.texto}</span></div>
+        <div class="fila-kv" style="margin-top:8px"><span class="k">Ahorro</span><span class="v" style="color:${deltaTasa.color}">${deltaTasa.texto}</span></div>
       </div>
-      <div class="stat-box">
-        <div class="label">&lt;ingreso vs. mes pasado&gt;</div>
-        <div class="grande" style="color:${deltaIngreso.color}">${deltaIngreso.texto}</div>
-      </div>
-      <div class="stat-box">
-        <div class="label">&lt;ahorro vs. mes pasado&gt;</div>
-        <div class="grande" style="color:${deltaTasa.color}">${deltaTasa.texto}</div>
-      </div>
+    </div>
 
+    <div class="desktop-grid" style="margin-top:var(--space-4)">
       <div>
         <div class="seccion-label"><span>&lt;rubros más ajustados&gt;</span></div>
         <div class="rubro-list">${rubrosHtml || '<div class="placeholder">Sin rubros todavía</div>'}</div>
