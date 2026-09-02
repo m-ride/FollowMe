@@ -42,9 +42,11 @@ func main() {
 	mux.HandleFunc("GET /api/metodos-pago", listMetodos)
 	mux.HandleFunc("POST /api/metodos-pago", crearMetodo)
 	mux.HandleFunc("PATCH /api/metodos-pago/{id}", actualizarMetodo)
+	mux.HandleFunc("DELETE /api/metodos-pago/{id}", borrarMetodo)
 	mux.HandleFunc("GET /api/rubros", listRubros)
 	mux.HandleFunc("POST /api/rubros", crearRubro)
 	mux.HandleFunc("PATCH /api/rubros/{id}", actualizarRubro)
+	mux.HandleFunc("DELETE /api/rubros/{id}", borrarRubro)
 	mux.HandleFunc("GET /api/aportaciones", listAportaciones)
 	mux.HandleFunc("POST /api/aportaciones", crearAportacion)
 	mux.HandleFunc("DELETE /api/aportaciones/{id}", borrarAportacion)
@@ -53,9 +55,13 @@ func main() {
 	mux.HandleFunc("DELETE /api/ingresos/{id}", borrarIngreso)
 	mux.HandleFunc("GET /api/gastos", listGastos)
 	mux.HandleFunc("POST /api/gastos", crearGasto)
+	mux.HandleFunc("PATCH /api/gastos/{id}/metodo-pago", actualizarGastoMetodo)
+	mux.HandleFunc("PATCH /api/gastos/{id}/rubro", actualizarGastoRubro)
 	mux.HandleFunc("DELETE /api/gastos/{id}", borrarGasto)
 	mux.HandleFunc("GET /api/compras-msi", listComprasMSI)
 	mux.HandleFunc("POST /api/compras-msi", crearCompraMSI)
+	mux.HandleFunc("PATCH /api/compras-msi/{id}/tarjeta", actualizarCompraTarjeta)
+	mux.HandleFunc("PATCH /api/compras-msi/{id}/rubro", actualizarCompraRubro)
 	mux.HandleFunc("DELETE /api/compras-msi/{id}", borrarCompraMSI)
 	mux.HandleFunc("PATCH /api/cuotas/{id}", marcarCuota)
 	mux.HandleFunc("GET /api/resumen", resumen)
@@ -220,6 +226,22 @@ func actualizarMetodo(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// borrarMetodo: los gastos/compras MSI que usaban este método quedan con
+// metodo_pago_id/tarjeta_id NULL (ON DELETE SET NULL en el esquema) — no se pierden,
+// aparecen en resumen.pendientes hasta que se les asigne un método nuevo.
+func borrarMetodo(w http.ResponseWriter, r *http.Request) {
+	tag, err := db.Exec(r.Context(), `DELETE FROM metodo_pago WHERE id=$1`, r.PathValue("id"))
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		http.Error(w, "método no encontrado", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func listMetodos(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query(r.Context(),
 		`SELECT id, nombre, tipo, limite, dia_corte, dia_pago FROM metodo_pago ORDER BY id`)
@@ -289,6 +311,22 @@ func actualizarRubro(w http.ResponseWriter, r *http.Request) {
 	tag, err := db.Exec(r.Context(),
 		`UPDATE rubro SET nombre=$1, monto_objetivo=$2, clasificacion=$3, es_fondo_emergencia=$4 WHERE id=$5`,
 		body.Nombre, body.MontoObjetivo, body.Clasificacion, body.EsFondoEmergencia, r.PathValue("id"))
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		http.Error(w, "rubro no encontrado", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// borrarRubro: sus aportaciones se van con él (ON DELETE CASCADE — sin el rubro que
+// fondeaban, no tienen a dónde ir). Los gastos/compras MSI que lo usaban quedan con
+// rubro_id NULL (ON DELETE SET NULL) y aparecen en resumen.pendientes.
+func borrarRubro(w http.ResponseWriter, r *http.Request) {
+	tag, err := db.Exec(r.Context(), `DELETE FROM rubro WHERE id=$1`, r.PathValue("id"))
 	if err != nil {
 		fallo(w, err)
 		return
@@ -469,8 +507,8 @@ func borrarIngreso(w http.ResponseWriter, r *http.Request) {
 
 type gasto struct {
 	ID           int64  `json:"id"`
-	RubroID      int64  `json:"rubro_id"`
-	MetodoPagoID int64  `json:"metodo_pago_id"`
+	RubroID      *int64 `json:"rubro_id"`
+	MetodoPagoID *int64 `json:"metodo_pago_id"`
 	Monto        int64  `json:"monto"`
 	Fecha        string `json:"fecha"`
 	Descripcion  string `json:"descripcion"`
@@ -479,6 +517,14 @@ type gasto struct {
 func crearGasto(w http.ResponseWriter, r *http.Request) {
 	g, ok := leer[gasto](w, r)
 	if !ok {
+		return
+	}
+	if g.MetodoPagoID == nil {
+		malo(w, errors.New("metodo_pago_id requerido"))
+		return
+	}
+	if g.RubroID == nil {
+		malo(w, errors.New("rubro_id requerido"))
 		return
 	}
 	f, err := fechaISO(g.Fecha)
@@ -539,12 +585,54 @@ func borrarGasto(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// actualizarGastoMetodo reasigna el método de pago de un gasto que se quedó sin uno
+// (porque el método original se borró) — no es un PATCH general del gasto.
+func actualizarGastoMetodo(w http.ResponseWriter, r *http.Request) {
+	body, ok := leer[struct {
+		MetodoPagoID int64 `json:"metodo_pago_id"`
+	}](w, r)
+	if !ok {
+		return
+	}
+	tag, err := db.Exec(r.Context(), `UPDATE gasto SET metodo_pago_id=$1 WHERE id=$2`, body.MetodoPagoID, r.PathValue("id"))
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		http.Error(w, "gasto no encontrado", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// actualizarGastoRubro reasigna el rubro de un gasto que se quedó sin uno (porque el
+// rubro original se borró).
+func actualizarGastoRubro(w http.ResponseWriter, r *http.Request) {
+	body, ok := leer[struct {
+		RubroID int64 `json:"rubro_id"`
+	}](w, r)
+	if !ok {
+		return
+	}
+	tag, err := db.Exec(r.Context(), `UPDATE gasto SET rubro_id=$1 WHERE id=$2`, body.RubroID, r.PathValue("id"))
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		http.Error(w, "gasto no encontrado", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // --- compras MSI ------------------------------------------------------------
 
 type compraMSI struct {
 	ID          int64   `json:"id"`
-	TarjetaID   int64   `json:"tarjeta_id"`
-	RubroID     int64   `json:"rubro_id"`
+	TarjetaID   *int64  `json:"tarjeta_id"`
+	RubroID     *int64  `json:"rubro_id"`
 	Descripcion string  `json:"descripcion"`
 	MontoTotal  int64   `json:"monto_total"`
 	PlazoMeses  int     `json:"plazo_meses"`
@@ -566,6 +654,14 @@ func crearCompraMSI(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if c.TarjetaID == nil {
+		malo(w, errors.New("tarjeta_id requerido"))
+		return
+	}
+	if c.RubroID == nil {
+		malo(w, errors.New("rubro_id requerido"))
+		return
+	}
 	f, err := fechaISO(c.FechaCompra)
 	if err != nil {
 		malo(w, errors.New("fecha_compra debe ser YYYY-MM-DD"))
@@ -575,9 +671,9 @@ func crearCompraMSI(w http.ResponseWriter, r *http.Request) {
 	var diaCorte, diaPago *int
 	err = db.QueryRow(r.Context(),
 		`SELECT dia_corte, dia_pago FROM metodo_pago WHERE id=$1 AND tipo='credito'`,
-		c.TarjetaID).Scan(&diaCorte, &diaPago)
+		*c.TarjetaID).Scan(&diaCorte, &diaPago)
 	if err != nil {
-		malo(w, fmt.Errorf("tarjeta_id %d no es una tarjeta de crédito", c.TarjetaID))
+		malo(w, fmt.Errorf("tarjeta_id %d no es una tarjeta de crédito", *c.TarjetaID))
 		return
 	}
 
@@ -653,6 +749,53 @@ func listComprasMSI(w http.ResponseWriter, r *http.Request) {
 // borrarCompraMSI también borra sus cuotas (ON DELETE CASCADE en el esquema).
 func borrarCompraMSI(w http.ResponseWriter, r *http.Request) {
 	tag, err := db.Exec(r.Context(), `DELETE FROM compra_msi WHERE id=$1`, r.PathValue("id"))
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		http.Error(w, "compra no encontrada", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// actualizarCompraTarjeta reasigna la tarjeta de una compra MSI que se quedó sin una
+// (porque la tarjeta original se borró) — las cuotas ya generadas no cambian de fecha.
+func actualizarCompraTarjeta(w http.ResponseWriter, r *http.Request) {
+	body, ok := leer[struct {
+		TarjetaID int64 `json:"tarjeta_id"`
+	}](w, r)
+	if !ok {
+		return
+	}
+	var tipo string
+	if err := db.QueryRow(r.Context(), `SELECT tipo FROM metodo_pago WHERE id=$1`, body.TarjetaID).Scan(&tipo); err != nil || tipo != "credito" {
+		malo(w, fmt.Errorf("tarjeta_id %d no es una tarjeta de crédito", body.TarjetaID))
+		return
+	}
+	tag, err := db.Exec(r.Context(), `UPDATE compra_msi SET tarjeta_id=$1 WHERE id=$2`, body.TarjetaID, r.PathValue("id"))
+	if err != nil {
+		fallo(w, err)
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		http.Error(w, "compra no encontrada", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// actualizarCompraRubro reasigna el rubro de una compra MSI que se quedó sin uno
+// (porque el rubro original se borró).
+func actualizarCompraRubro(w http.ResponseWriter, r *http.Request) {
+	body, ok := leer[struct {
+		RubroID int64 `json:"rubro_id"`
+	}](w, r)
+	if !ok {
+		return
+	}
+	tag, err := db.Exec(r.Context(), `UPDATE compra_msi SET rubro_id=$1 WHERE id=$2`, body.RubroID, r.PathValue("id"))
 	if err != nil {
 		fallo(w, err)
 		return

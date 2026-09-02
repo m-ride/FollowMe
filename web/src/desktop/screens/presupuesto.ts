@@ -1,4 +1,4 @@
-import { getResumen, getRubros, actualizarRubro } from '../../api';
+import { getResumen, getRubros, actualizarRubro, borrarRubro } from '../../api';
 import { money, esc } from '../../format';
 import { refreshIcons } from '../../icons';
 
@@ -21,6 +21,7 @@ export async function renderPresupuesto(root: HTMLElement) {
       <td class="num">${money(gastado)}</td>
       <td class="num" style="color:${disponible < 0 ? 'var(--status-error)' : 'inherit'}">${money(disponible)}</td>
       <td><span class="chico" data-status></span></td>
+      <td><button type="button" class="icon-btn btn-borrar-rubro" data-id="${id}" style="width:28px;height:28px"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button></td>
     </tr>`;
 
   const filasGasto = resumen.rubros
@@ -34,6 +35,7 @@ export async function renderPresupuesto(root: HTMLElement) {
       <td class="num">${money(saldo)}</td>
       <td style="text-align:center"><input type="checkbox" class="input-fondo" ${esFondo ? 'checked' : ''} /></td>
       <td><span class="chico" data-status></span></td>
+      <td><button type="button" class="icon-btn btn-borrar-rubro" data-id="${id}" style="width:28px;height:28px"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button></td>
     </tr>`;
 
   const filasAhorro = resumen.ahorro
@@ -51,16 +53,16 @@ export async function renderPresupuesto(root: HTMLElement) {
     <div class="seccion-label"><span>&lt;rubros de gasto&gt; · ${resumen.periodo}</span></div>
     <div class="tabla-wrap">
       <table class="tabla">
-        <thead><tr><th>Nombre</th><th>Clasificación</th><th>Aportado</th><th>Gastado</th><th>Disponible</th><th></th></tr></thead>
-        <tbody>${filasGasto || '<tr><td colspan="6"><div class="placeholder">Sin rubros todavía</div></td></tr>'}</tbody>
+        <thead><tr><th>Nombre</th><th>Clasificación</th><th>Aportado</th><th>Gastado</th><th>Disponible</th><th></th><th></th></tr></thead>
+        <tbody>${filasGasto || '<tr><td colspan="7"><div class="placeholder">Sin rubros todavía</div></td></tr>'}</tbody>
       </table>
     </div>
 
     <div class="seccion-label"><span>&lt;bolsas de ahorro&gt;</span></div>
     <div class="tabla-wrap">
       <table class="tabla">
-        <thead><tr><th>Nombre</th><th>Meta</th><th>Saldo</th><th>Fondo emergencia</th><th></th></tr></thead>
-        <tbody>${filasAhorro || '<tr><td colspan="5"><div class="placeholder">Sin bolsas todavía</div></td></tr>'}</tbody>
+        <thead><tr><th>Nombre</th><th>Meta</th><th>Saldo</th><th>Fondo emergencia</th><th></th><th></th></tr></thead>
+        <tbody>${filasAhorro || '<tr><td colspan="6"><div class="placeholder">Sin bolsas todavía</div></td></tr>'}</tbody>
       </table>
     </div>
   `;
@@ -103,6 +105,20 @@ export async function renderPresupuesto(root: HTMLElement) {
     inputFondo?.addEventListener('change', async () => {
       await guardarFila();
       renderPresupuesto(root);
+    });
+  });
+
+  root.querySelectorAll<HTMLButtonElement>('.btn-borrar-rubro').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const nombre = root.querySelector<HTMLInputElement>(`tr[data-id="${btn.dataset.id}"] .input-nombre`)?.value ?? '';
+      if (!confirm(`¿Borrar "${nombre}"? Se perderán sus aportaciones registradas; sus gastos y compras MSI se quedarán sin rubro (los verás en Pendientes).`)) return;
+      try {
+        await borrarRubro(Number(btn.dataset.id));
+        await renderPresupuesto(root);
+        refreshIcons();
+      } catch (err) {
+        alert((err as Error).message);
+      }
     });
   });
 }

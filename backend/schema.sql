@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS aportacion (
 
 CREATE TABLE IF NOT EXISTS gasto (
   id             BIGSERIAL PRIMARY KEY,
-  rubro_id       BIGINT NOT NULL REFERENCES rubro(id),
-  metodo_pago_id BIGINT NOT NULL REFERENCES metodo_pago(id),
+  rubro_id       BIGINT REFERENCES rubro(id),
+  metodo_pago_id BIGINT REFERENCES metodo_pago(id),
   monto          BIGINT NOT NULL CHECK (monto > 0),
   fecha          DATE NOT NULL,
   descripcion    TEXT NOT NULL DEFAULT ''
@@ -46,13 +46,42 @@ CREATE TABLE IF NOT EXISTS gasto (
 
 CREATE TABLE IF NOT EXISTS compra_msi (
   id           BIGSERIAL PRIMARY KEY,
-  tarjeta_id   BIGINT NOT NULL REFERENCES metodo_pago(id),
-  rubro_id     BIGINT NOT NULL REFERENCES rubro(id),
+  tarjeta_id   BIGINT REFERENCES metodo_pago(id),
+  rubro_id     BIGINT REFERENCES rubro(id),
   descripcion  TEXT NOT NULL DEFAULT '',
   monto_total  BIGINT NOT NULL CHECK (monto_total > 0),
   plazo_meses  INT NOT NULL CHECK (plazo_meses BETWEEN 1 AND 48),
   fecha_compra DATE NOT NULL
 );
+
+-- Borrar un método de pago ya no debe bloquearse por FK: los gastos/compras que lo
+-- usaban se quedan con metodo_pago_id/tarjeta_id NULL (en vez de perder el registro
+-- completo) y aparecen en /api/resumen.pendientes para que el usuario les asigne un
+-- método nuevo — ver pantalla "Pendientes" en el frontend. Idempotente: DROP+ADD
+-- porque Postgres no tiene "ALTER CONSTRAINT ... ON DELETE" directo.
+ALTER TABLE gasto ALTER COLUMN metodo_pago_id DROP NOT NULL;
+ALTER TABLE gasto DROP CONSTRAINT IF EXISTS gasto_metodo_pago_id_fkey;
+ALTER TABLE gasto ADD CONSTRAINT gasto_metodo_pago_id_fkey
+  FOREIGN KEY (metodo_pago_id) REFERENCES metodo_pago(id) ON DELETE SET NULL;
+
+ALTER TABLE compra_msi ALTER COLUMN tarjeta_id DROP NOT NULL;
+ALTER TABLE compra_msi DROP CONSTRAINT IF EXISTS compra_msi_tarjeta_id_fkey;
+ALTER TABLE compra_msi ADD CONSTRAINT compra_msi_tarjeta_id_fkey
+  FOREIGN KEY (tarjeta_id) REFERENCES metodo_pago(id) ON DELETE SET NULL;
+
+-- Mismo trato para borrar un rubro: los gastos/compras que lo usaban quedan con
+-- rubro_id NULL (pendientes), no bloqueados ni perdidos. La aportación sí se
+-- cascada-borra (aportacion(rubro_id) ON DELETE CASCADE, ya en su CREATE TABLE de
+-- arriba): sin el rubro que fondeaba, esas aportaciones no tienen a dónde ir.
+ALTER TABLE gasto ALTER COLUMN rubro_id DROP NOT NULL;
+ALTER TABLE gasto DROP CONSTRAINT IF EXISTS gasto_rubro_id_fkey;
+ALTER TABLE gasto ADD CONSTRAINT gasto_rubro_id_fkey
+  FOREIGN KEY (rubro_id) REFERENCES rubro(id) ON DELETE SET NULL;
+
+ALTER TABLE compra_msi ALTER COLUMN rubro_id DROP NOT NULL;
+ALTER TABLE compra_msi DROP CONSTRAINT IF EXISTS compra_msi_rubro_id_fkey;
+ALTER TABLE compra_msi ADD CONSTRAINT compra_msi_rubro_id_fkey
+  FOREIGN KEY (rubro_id) REFERENCES rubro(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS cuota_msi (
   id                BIGSERIAL PRIMARY KEY,

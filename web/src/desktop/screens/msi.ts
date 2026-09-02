@@ -15,8 +15,8 @@ export async function renderMSIEscritorio(root: HTMLElement) {
   root.innerHTML = `<div class="placeholder">Cargando…</div>`;
 
   const [compras, metodos, rubros] = await Promise.all([getComprasMSI(), getMetodos(), getRubros()]);
-  const nombreMetodo = (id: number) => metodos.find((m) => m.id === id)?.nombre ?? '—';
-  const nombreRubro = (id: number) => rubros.find((r) => r.id === id)?.nombre ?? '—';
+  const nombreMetodo = (id: number | null) => metodos.find((m) => m.id === id)?.nombre ?? '—';
+  const nombreRubro = (id: number | null) => rubros.find((r) => r.id === id)?.nombre ?? '—';
 
   const filas: FilaCompra[] = compras.map((c) => {
     const pendientes = c.cuotas.filter((q) => !q.pagada);
@@ -27,7 +27,11 @@ export async function renderMSIEscritorio(root: HTMLElement) {
   const columnas: Columna<FilaCompra>[] = [
     { clave: 'descripcion', etiqueta: 'Compra', valor: (f) => esc(f.compra.descripcion || '(sin descripción)') },
     { clave: 'tarjeta', etiqueta: 'Tarjeta', valor: (f) => esc(f.tarjeta) },
-    { clave: 'rubro', etiqueta: 'Rubro', valor: (f) => `<a href="#/rubro?id=${f.compra.rubro_id}">${esc(f.rubro)}</a>` },
+    {
+      clave: 'rubro',
+      etiqueta: 'Rubro',
+      valor: (f) => (f.compra.rubro_id !== null ? `<a href="#/rubro?id=${f.compra.rubro_id}">${esc(f.rubro)}</a>` : `<a href="#/pendientes">${esc(f.rubro)}</a>`),
+    },
     { clave: 'monto_total', etiqueta: 'Monto total', num: true, valor: (f) => money(f.compra.monto_total), orden: (f) => f.compra.monto_total },
     { clave: 'pendientes', etiqueta: 'Cuotas', valor: (f) => `${f.compra.plazo_meses - f.pendientes}/${f.compra.plazo_meses}`, orden: (f) => f.pendientes },
     { clave: 'proximo', etiqueta: 'Próximo vencimiento', valor: (f) => (f.proximoVencimiento ? fechaCorta(f.proximoVencimiento) : 'liquidada'), orden: (f) => f.proximoVencimiento || '9999' },

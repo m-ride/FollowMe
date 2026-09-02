@@ -9,6 +9,7 @@ import { renderDetalleRubro } from '../screens/detalleRubro';
 import { renderNuevoGasto } from '../screens/nuevoGasto';
 import { renderNuevoRubro } from '../screens/nuevoRubro';
 import { renderNuevaCompraMSI } from '../screens/nuevaCompraMSI';
+import { renderPendientes } from '../screens/pendientes';
 
 export const NAV_ITEMS = [
   { path: '/', icon: 'house', label: 'Dashboard' },
@@ -32,4 +33,5 @@ export const desktopRoutes = [
   { path: '/rubro/nuevo', render: renderNuevoRubro },
   { path: '/gastos/nuevo', render: renderNuevoGasto },
   { path: '/msi/nuevo', render: renderNuevaCompraMSI },
+  { path: '/pendientes', render: renderPendientes },
 ];

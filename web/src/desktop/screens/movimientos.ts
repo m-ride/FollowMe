@@ -23,8 +23,8 @@ export async function renderMovimientos(root: HTMLElement) {
     getRubros(),
     getMetodos(),
   ]);
-  const nombreRubro = (id: number) => rubros.find((r) => r.id === id)?.nombre ?? '—';
-  const nombreMetodo = (id: number) => metodos.find((m) => m.id === id)?.nombre ?? '—';
+  const nombreRubro = (id: number | null) => rubros.find((r) => r.id === id)?.nombre ?? '—';
+  const nombreMetodo = (id: number | null) => metodos.find((m) => m.id === id)?.nombre ?? '—';
 
   const filas: FilaMov[] = [
     ...gastos.map((g): FilaMov => ({
@@ -33,7 +33,7 @@ export async function renderMovimientos(root: HTMLElement) {
       rubro: nombreRubro(g.rubro_id),
       detalle: `${nombreMetodo(g.metodo_pago_id)} · ${g.descripcion || '(sin descripción)'}`,
       monto: -g.monto,
-      href: `#/rubro?id=${g.rubro_id}`,
+      href: g.rubro_id !== null ? `#/rubro?id=${g.rubro_id}` : '#/pendientes',
     })),
     ...aportaciones.map((a): FilaMov => ({
       tipo: 'aportación',
@@ -58,7 +58,7 @@ export async function renderMovimientos(root: HTMLElement) {
           rubro: nombreRubro(c.rubro_id),
           detalle: `Cuota ${q.numero_cuota}/${c.plazo_meses} · ${c.descripcion || '(sin descripción)'}`,
           monto: -q.monto,
-          href: `#/rubro?id=${c.rubro_id}`,
+          href: c.rubro_id !== null ? `#/rubro?id=${c.rubro_id}` : '#/pendientes',
         }))
     ),
   ].sort((a, b) => b.fecha.localeCompare(a.fecha));
@@ -77,7 +77,7 @@ export async function renderMovimientos(root: HTMLElement) {
   root.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div class="desktop-titulo" style="margin-bottom:0">Movimientos</div>
-      <a href="#/gastos/nuevo" class="btn-fantasma" style="width:auto;padding:8px 16px"><i data-lucide="plus" style="width:16px;height:16px;"></i>Nuevo gasto</a>
+      <a href="#/gastos/nuevo" class="btn-fantasma" style="width:auto;padding:8px 16px"><i data-lucide="plus" style="width:16px;height:16px;"></i>Nuevo</a>
     </div>
     <div class="tabla-filtros" style="margin-top:var(--space-4)">
       <select id="f-tipo"><option value="">Todos los tipos</option>${tiposUnicos.map((t) => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select>

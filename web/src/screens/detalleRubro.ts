@@ -1,9 +1,7 @@
-import { getResumen, getGastos, getMetodos, crearAportacion, borrarGasto, actualizarRubro, getAportaciones } from '../api';
-import { money, esc, fechaCorta, mesAnterior } from '../format';
+import { getResumen, getGastos, getMetodos, crearAportacion, borrarGasto, actualizarRubro, borrarRubro, getAportaciones } from '../api';
+import { money, esc, fechaCorta, mesAnterior, periodoActual } from '../format';
 import { iconoRubro, refreshIcons } from '../icons';
 import { topbarBack } from '../chrome';
-
-const periodoActual = () => new Date().toISOString().slice(0, 7);
 
 export async function renderDetalleRubro(root: HTMLElement, params: URLSearchParams) {
   const id = Number(params.get('id'));
@@ -64,6 +62,9 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
           </div>
           <button class="btn-primario" type="submit"><i data-lucide="check" style="width:19px;height:19px;"></i>Guardar</button>
         </form>
+        <button type="button" id="btn-borrar-rubro" class="btn-fantasma" style="margin-top:8px;color:var(--status-error)">
+          <i data-lucide="trash-2" style="width:16px;height:16px;"></i>Borrar rubro
+        </button>
       </div>
       ${r.clasificacion ? `<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin:4px 4px 12px">&lt;${r.clasificacion}&gt;</div>` : ''}
       <div class="hero-mini">
@@ -141,6 +142,17 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
     if (!nombre) return;
     await actualizarRubro(id, { nombre, clasificacion: clasifEditar });
     renderDetalleRubro(root, params);
+  });
+  root.querySelector('#btn-borrar-rubro')!.addEventListener('click', async () => {
+    const avisoAportaciones = total > 0 ? ` Se borrarán sus ${money(total)} en aportaciones.` : '';
+    const avisoMovimientos = movimientos.length > 0 ? ` Sus ${movimientos.length} gasto${movimientos.length === 1 ? '' : 's'} se quedarán sin rubro (los verás en Pendientes).` : '';
+    if (!confirm(`¿Borrar "${r.nombre}"?${avisoAportaciones}${avisoMovimientos}`)) return;
+    try {
+      await borrarRubro(id);
+      location.hash = '#/';
+    } catch (err) {
+      alert((err as Error).message);
+    }
   });
 
   let fuente: 'yo' | 'pareja' = 'yo';

@@ -22,8 +22,8 @@ export async function exportarMovimientosCSV() {
     getRubros(),
     getMetodos(),
   ]);
-  const nombreRubro = (id: number) => rubros.find((r) => r.id === id)?.nombre ?? '';
-  const nombreMetodo = (id: number) => metodos.find((m) => m.id === id)?.nombre ?? '';
+  const nombreRubro = (id: number | null) => rubros.find((r) => r.id === id)?.nombre ?? '';
+  const nombreMetodo = (id: number | null) => metodos.find((m) => m.id === id)?.nombre ?? '';
 
   const filas: string[][] = [['tipo', 'fecha_o_periodo', 'rubro', 'metodo_pago', 'fuente', 'monto_pesos', 'descripcion']];
   for (const g of gastos) {
