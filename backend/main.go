@@ -66,6 +66,8 @@ func main() {
 	mux.HandleFunc("PATCH /api/cuotas/{id}", marcarCuota)
 	mux.HandleFunc("GET /api/resumen", resumen)
 	mux.HandleFunc("GET /api/tendencia", tendencia)
+	mux.HandleFunc("GET /api/tendencia-rubros", tendenciaRubros)
+	mux.HandleFunc("GET /api/tendencia-tarjetas", tendenciaTarjetas)
 	mux.HandleFunc("GET /api/patrimonio-historico", patrimonioHistorico)
 	mux.HandleFunc("GET /api/export", exportar)
 	mux.HandleFunc("POST /api/import", importar)

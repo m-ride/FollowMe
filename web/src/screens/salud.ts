@@ -1,6 +1,15 @@
-import { getResumen, getIngresos, crearIngreso, borrarIngreso, getTendencia, getPatrimonioHistorico } from '../api';
+import {
+  getResumen,
+  getIngresos,
+  crearIngreso,
+  borrarIngreso,
+  getTendencia,
+  getPatrimonioHistorico,
+  getTendenciaRubros,
+  getTendenciaTarjetas,
+} from '../api';
 import { money, esc, mesLargo, mesAnterior } from '../format';
-import { refreshIcons } from '../icons';
+import { iconoRubro, refreshIcons } from '../icons';
 import { topbarBack } from '../chrome';
 import {
   calcularAlertas,
@@ -23,11 +32,13 @@ export async function renderSalud(root: HTMLElement, params?: URLSearchParams) {
   const abrirFormulario = params?.get('nuevo') === '1';
   root.innerHTML = `<div class="screen">${topbarBack('Salud financiera', '/')}<div class="placeholder">Cargando…</div></div>`;
 
-  const [resumen, ingresos, tendencia, patrimonio] = await Promise.all([
+  const [resumen, ingresos, tendencia, patrimonio, tendenciaRubros, tendenciaTarjetas] = await Promise.all([
     getResumen(),
     getIngresos(periodoActual()),
     getTendencia(6),
     getPatrimonioHistorico(6),
+    getTendenciaRubros(6),
+    getTendenciaTarjetas(6),
   ]);
   const { salud: sd, tarjetas, ingreso_total, fondo_emergencia: fondo } = resumen;
   const mesPasado = mesAnterior(resumen.periodo);
@@ -46,9 +57,17 @@ export async function renderSalud(root: HTMLElement, params?: URLSearchParams) {
   const pctFijo = gastoClasificado > 0 ? (sd.gasto_fijo / gastoClasificado) * 100 : 0;
   const pctDiscrecional = gastoClasificado > 0 ? (sd.gasto_discrecional / gastoClasificado) * 100 : 0;
 
+  const nombreMesCorto = (periodo: string) => mesLargo(periodo).split(' ')[0].slice(0, 3);
+
   const tarjetasHtml = tarjetas
     .map((t) => {
       const color = t.pct_utilizacion >= UMBRAL_UTILIZACION_ERROR ? 'error' : t.pct_utilizacion >= UMBRAL_UTILIZACION_WARN ? 'warn' : '';
+      const historico = tendenciaTarjetas.tarjetas.find((x) => x.id === t.id);
+      const trendHtml = historico
+        ? `<div class="chico" style="margin-top:10px">últimos ${tendenciaTarjetas.meses.length} meses: ${historico.pct_utilizacion
+            .map((p, i) => `${nombreMesCorto(tendenciaTarjetas.meses[i])} ${p.toFixed(0)}%`)
+            .join(' · ')}</div>`
+        : '';
       return `
         <div class="bolsa-card">
           <div class="fila">
@@ -60,6 +79,7 @@ export async function renderSalud(root: HTMLElement, params?: URLSearchParams) {
             <span class="pct" style="color:${color === 'error' ? 'var(--status-error)' : color === 'warn' ? 'var(--status-warn)' : 'var(--teal-deep)'}">${t.pct_utilizacion.toFixed(0)}%</span>
           </div>
           <div class="progress" style="margin-top:12px"><div class="${color}" style="width:${Math.min(t.pct_utilizacion, 100)}%"></div></div>
+          ${trendHtml}
         </div>`;
     })
     .join('');
@@ -79,8 +99,6 @@ export async function renderSalud(root: HTMLElement, params?: URLSearchParams) {
     )
     .join('');
 
-  const nombreMesCorto = (periodo: string) => mesLargo(periodo).split(' ')[0].slice(0, 3);
-
   const maxTasa = Math.max(...tendencia.meses.map((m) => Math.abs(m.tasa_ahorro ?? 0)), 10);
   const barrasTendencia = tendencia.meses
     .map((m) => {
@@ -97,6 +115,25 @@ export async function renderSalud(root: HTMLElement, params?: URLSearchParams) {
       const alto = Math.round((Math.abs(p.monto) / maxPatrimonio) * 118);
       const color = p.monto < 0 ? 'var(--status-error)' : 'var(--teal)';
       return barra(`${(p.monto / 100000).toFixed(1)}k`, alto, color, nombreMesCorto(p.periodo));
+    })
+    .join('');
+
+  const gastoRubrosHtml = tendenciaRubros.rubros
+    .map((rt) => {
+      const actual = rt.montos[rt.montos.length - 1] ?? 0;
+      const anterior = rt.montos[rt.montos.length - 2] ?? 0;
+      const pct = anterior > 0 ? ((actual - anterior) / anterior) * 100 : null;
+      const color = pct === null || pct === 0 ? 'inherit' : pct > 0 ? 'var(--status-error)' : 'var(--status-ok)';
+      const flecha = pct === null ? '—' : `${pct >= 0 ? '▲' : '▼'} ${Math.abs(pct).toFixed(0)}%`;
+      return `
+        <div class="mov-item">
+          <div class="icono"><i data-lucide="${iconoRubro(rt.nombre)}" style="width:17px;height:17px"></i></div>
+          <div class="info">
+            <div class="desc">${esc(rt.nombre)}</div>
+            <div class="meta">${rt.montos.map((m) => money(m)).join(' → ')}</div>
+          </div>
+          <span class="monto" style="color:${color};font-size:13px">${flecha}</span>
+        </div>`;
     })
     .join('');
 
@@ -140,6 +177,9 @@ export async function renderSalud(root: HTMLElement, params?: URLSearchParams) {
 
       <div class="seccion-label"><span>&lt;tasa de ahorro · últimos ${tendencia.meses.length} meses&gt;</span></div>
       <div class="bar-chart"><div class="cols">${barrasTendencia || '<div class="placeholder">Sin datos todavía</div>'}</div></div>
+
+      <div class="seccion-label"><span>&lt;gasto por rubro · últimos ${tendenciaRubros.meses.length} meses&gt;</span></div>
+      <div class="rubro-list">${gastoRubrosHtml || '<div class="placeholder">Sin rubros de gasto todavía</div>'}</div>
 
       <div class="seccion-label"><span>&lt;patrimonio neto · histórico&gt;</span></div>
       <div class="bar-chart"><div class="cols">${barrasPatrimonio || '<div class="placeholder">El histórico arranca este mes — vuelve el próximo</div>'}</div></div>

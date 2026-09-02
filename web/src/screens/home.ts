@@ -1,5 +1,5 @@
-import { getResumen } from '../api';
-import { money, esc, mesLargo } from '../format';
+import { getResumen, getTendencia } from '../api';
+import { money, esc, mesLargo, deltaPct, deltaPuntos, type Delta } from '../format';
 import { iconoRubro } from '../icons';
 import { NOMBRE, PAREJA_NOMBRE } from '../config';
 import { renderNav } from '../nav';
@@ -8,7 +8,16 @@ import { calcularAlertas, renderAlertasBanner, UMBRAL_RUBRO_WARN, UMBRAL_RUBRO_E
 export async function renderHome(root: HTMLElement) {
   root.innerHTML = `<div class="screen"><div class="placeholder">Cargando…</div></div>`;
 
-  const r = await getResumen();
+  const [r, tendencia] = await Promise.all([getResumen(), getTendencia(2)]);
+  const [mesAnt, mesAct] = tendencia.meses;
+
+  const sinDatoAnterior: Delta = { texto: '—', color: 'inherit' };
+  const deltaGasto = mesAnt ? deltaPct(mesAct.gasto_total, mesAnt.gasto_total, false) : sinDatoAnterior;
+  const deltaIngreso = mesAnt ? deltaPct(mesAct.ingreso, mesAnt.ingreso, true) : sinDatoAnterior;
+  const deltaTasa =
+    mesAnt && mesAct.tasa_ahorro !== undefined && mesAnt.tasa_ahorro !== undefined
+      ? deltaPuntos(mesAct.tasa_ahorro, mesAnt.tasa_ahorro)
+      : sinDatoAnterior;
 
   const totalDisponible = r.rubros.reduce((s, x) => s + x.disponible, 0);
   const totalAportado = r.rubros.reduce((s, x) => s + x.aportado_yo + x.aportado_pareja, 0);
@@ -77,6 +86,11 @@ export async function renderHome(root: HTMLElement) {
                 ? `<div class="stat"><div class="k">Ingreso comprometido</div><div class="v" style="color:${r.salud.pct_ingreso_comprometido_msi >= UMBRAL_MSI_ERROR ? '#E8867A' : 'inherit'}">${r.salud.pct_ingreso_comprometido_msi.toFixed(0)}%</div></div>`
                 : ''
             }
+          </div>
+          <div class="stat-row">
+            <div class="stat"><div class="k">Gasto vs. mes pasado</div><div class="v" style="color:${deltaGasto.color}">${deltaGasto.texto}</div></div>
+            <div class="stat"><div class="k">Ingreso vs. mes pasado</div><div class="v" style="color:${deltaIngreso.color}">${deltaIngreso.texto}</div></div>
+            <div class="stat"><div class="k">Ahorro vs. mes pasado</div><div class="v" style="color:${deltaTasa.color}">${deltaTasa.texto}</div></div>
           </div>
         </div>
       </a>

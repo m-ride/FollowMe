@@ -56,6 +56,18 @@ FONDO_ID=$(echo "$FONDO_RESP" | jq '.fondo_emergencia.rubro_id')
 TEND_MESES=$(get "tendencia?meses=3" | jq '.meses | length')
 [ "$TEND_MESES" = 3 ] || { echo "tendencia trajo $TEND_MESES meses, esperaba 3"; exit 1; }
 
+# tendencia-rubros: 3 meses, y el gasto del mes actual en $COMIDA debe incluir el de
+# esta corrida (>=, no ==, por si una corrida previa dejó gasto en el mismo rubro/mes).
+TR=$(get "tendencia-rubros?meses=3")
+TR_MESES=$(echo "$TR" | jq '.meses | length')
+[ "$TR_MESES" = 3 ] || { echo "tendencia-rubros trajo $TR_MESES meses, esperaba 3"; exit 1; }
+TR_COMIDA=$(echo "$TR" | jq --argjson id "$COMIDA" '[.rubros[] | select(.rubro_id==$id) | .montos[-1]][0]')
+[ "$TR_COMIDA" -ge 120000 ] || { echo "tendencia-rubros: gasto del mes en Comida $TR_COMIDA < 120000"; exit 1; }
+
+# tendencia-tarjetas: la tarjeta de esta corrida debe traer 3 puntos de % de utilización.
+TT_PUNTOS=$(get "tendencia-tarjetas?meses=3" | jq --argjson id "$TARJ" '[.tarjetas[] | select(.id==$id) | .pct_utilizacion | length][0]')
+[ "$TT_PUNTOS" = 3 ] || { echo "tendencia-tarjetas: $TT_PUNTOS puntos para la tarjeta, esperaba 3"; exit 1; }
+
 # aportaciones ahora tiene GET — debe listar al menos las que creó esta corrida.
 APORT_COUNT=$(get "aportaciones?periodo=$MES" | jq 'length')
 [ "$APORT_COUNT" -ge 3 ] || { echo "GET aportaciones trajo $APORT_COUNT, esperaba al menos 3"; exit 1; }
@@ -67,4 +79,4 @@ EXPORT_FONDO=$(get "export" | jq --argjson id "$FONDO" '.rubro[] | select(.id==$
 # sin token la API rechaza
 curl -sf -o /dev/null "$API/rubros" && { echo "la API respondió sin token"; exit 1; }
 
-echo "smoke OK — disponible=$DISP cuotas_mes=$CUOTA_MES compromiso=$TOTAL fondo_emergencia=$FONDO_ID tendencia_meses=$TEND_MESES"
+echo "smoke OK — disponible=$DISP cuotas_mes=$CUOTA_MES compromiso=$TOTAL fondo_emergencia=$FONDO_ID tendencia_meses=$TEND_MESES tendencia_rubros_meses=$TR_MESES tendencia_tarjetas_puntos=$TT_PUNTOS"

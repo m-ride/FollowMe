@@ -109,6 +109,19 @@ export interface PuntoPatrimonio {
   monto: number;
 }
 
+export interface RubroTendencia {
+  rubro_id: number;
+  nombre: string;
+  montos: number[];
+}
+
+export interface TarjetaTendencia {
+  id: number;
+  nombre: string;
+  limite: number;
+  pct_utilizacion: number[];
+}
+
 export interface Respaldo {
   version: number;
   generado_en: string;
@@ -225,5 +238,9 @@ export const getTendencia = (meses?: number) =>
   get<{ meses: MesTendencia[] }>(`tendencia${meses ? `?meses=${meses}` : ''}`);
 export const getPatrimonioHistorico = (meses?: number) =>
   get<{ meses: PuntoPatrimonio[] }>(`patrimonio-historico${meses ? `?meses=${meses}` : ''}`);
+export const getTendenciaRubros = (meses?: number) =>
+  get<{ meses: string[]; rubros: RubroTendencia[] }>(`tendencia-rubros${meses ? `?meses=${meses}` : ''}`);
+export const getTendenciaTarjetas = (meses?: number) =>
+  get<{ meses: string[]; tarjetas: TarjetaTendencia[] }>(`tendencia-tarjetas${meses ? `?meses=${meses}` : ''}`);
 export const getExport = () => get<Respaldo>('export');
 export const importarDatos = (r: Respaldo) => post<void>('import', r);

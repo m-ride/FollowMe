@@ -26,6 +26,28 @@ export const mesAnterior = (periodo: string): string => {
 
 export const periodoActual = (): string => new Date().toISOString().slice(0, 7);
 
+export interface Delta {
+  texto: string;
+  color: string;
+}
+
+// "vs. mes pasado": arriba no siempre es bueno (gasto vs. ingreso/ahorro), así que el
+// color sigue `masEsBueno`, no solo la dirección de la flecha.
+export const deltaPct = (actual: number, anterior: number, masEsBueno: boolean): Delta => {
+  if (anterior === 0) return { texto: '—', color: 'inherit' };
+  const pct = ((actual - anterior) / Math.abs(anterior)) * 100;
+  const sube = pct >= 0;
+  const bueno = sube === masEsBueno;
+  return { texto: `${sube ? '▲' : '▼'} ${Math.abs(pct).toFixed(0)}%`, color: pct === 0 ? 'inherit' : bueno ? 'var(--status-ok)' : 'var(--status-error)' };
+};
+
+// Para tasas que ya son porcentaje (tasa de ahorro): la diferencia se expresa en
+// puntos porcentuales, no como un % relativo del % anterior — confunde menos.
+export const deltaPuntos = (actual: number, anterior: number): Delta => {
+  const pp = actual - anterior;
+  return { texto: `${pp >= 0 ? '▲' : '▼'} ${Math.abs(pp).toFixed(0)}pp`, color: pp >= 0 ? 'var(--status-ok)' : 'var(--status-error)' };
+};
+
 const ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 // Nombres de rubro/tarjeta vienen del usuario y se insertan como HTML (innerHTML) — sin
 // esto, un nombre con "<" rompería el layout o (self-XSS) ejecutaría markup.
