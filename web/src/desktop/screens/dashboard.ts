@@ -1,5 +1,5 @@
 import { getResumen, getTendencia } from '../../api';
-import { money, esc, mesLargo } from '../../format';
+import { money, esc, mesLargo, deltaPct, deltaPuntos, type Delta } from '../../format';
 import { iconoRubro, refreshIcons } from '../../icons';
 import { calcularAlertas, renderAlertasBanner } from '../../alertas';
 
@@ -8,6 +8,16 @@ export async function renderDashboard(root: HTMLElement) {
 
   const [resumen, tendencia] = await Promise.all([getResumen(), getTendencia(6)]);
   const alertas = calcularAlertas(resumen);
+
+  const mesAct = tendencia.meses[tendencia.meses.length - 1];
+  const mesAnt = tendencia.meses[tendencia.meses.length - 2];
+  const sinDatoAnterior: Delta = { texto: '—', color: 'inherit' };
+  const deltaGasto = mesAnt ? deltaPct(mesAct.gasto_total, mesAnt.gasto_total, false) : sinDatoAnterior;
+  const deltaIngreso = mesAnt ? deltaPct(mesAct.ingreso, mesAnt.ingreso, true) : sinDatoAnterior;
+  const deltaTasa =
+    mesAnt && mesAct.tasa_ahorro !== undefined && mesAnt.tasa_ahorro !== undefined
+      ? deltaPuntos(mesAct.tasa_ahorro, mesAnt.tasa_ahorro)
+      : sinDatoAnterior;
 
   const totalDisponible = resumen.rubros.reduce((s, x) => s + x.disponible, 0);
   const totalAportado = resumen.rubros.reduce((s, x) => s + x.aportado_yo + x.aportado_pareja, 0);
@@ -76,6 +86,18 @@ export async function renderDashboard(root: HTMLElement) {
         <div class="label">&lt;MSI este mes&gt;</div>
         <div class="grande">${money(msiEsteMes)}</div>
         <div class="chico">${resumen.salud.pct_ingreso_comprometido_msi !== undefined ? `${resumen.salud.pct_ingreso_comprometido_msi.toFixed(0)}% del ingreso` : '—'}</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">&lt;gasto vs. mes pasado&gt;</div>
+        <div class="grande" style="color:${deltaGasto.color}">${deltaGasto.texto}</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">&lt;ingreso vs. mes pasado&gt;</div>
+        <div class="grande" style="color:${deltaIngreso.color}">${deltaIngreso.texto}</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">&lt;ahorro vs. mes pasado&gt;</div>
+        <div class="grande" style="color:${deltaTasa.color}">${deltaTasa.texto}</div>
       </div>
 
       <div>

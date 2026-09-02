@@ -14,6 +14,7 @@ import { renderMetodos } from './screens/metodos';
 import { renderGastos } from './screens/gastos';
 import { renderSalud } from './screens/salud';
 import { renderDatos } from './screens/datos';
+import { renderPendientes } from './screens/pendientes';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 
@@ -43,6 +44,7 @@ function iniciar() {
       { path: '/ahorro', render: renderAhorro },
       { path: '/metodos', render: renderMetodos },
       { path: '/salud', render: renderSalud },
+      { path: '/pendientes', render: renderPendientes },
       { path: '/datos', render: renderDatos },
     ],
     app,
@@ -70,3 +72,15 @@ document.addEventListener('click', (e) => {
   }
   if (!target.closest('#fab-menu')) menu.hidden = true;
 });
+
+// Un <input type="number"> enfocado captura la rueda del mouse/trackpad y cambia su
+// valor en vez de dejar hacer scroll a la página — quitarle el foco al primer scroll
+// deja que el gesto se comporte como scroll normal.
+document.addEventListener(
+  'wheel',
+  () => {
+    const activo = document.activeElement;
+    if (activo instanceof HTMLInputElement && activo.type === 'number') activo.blur();
+  },
+  { passive: true }
+);

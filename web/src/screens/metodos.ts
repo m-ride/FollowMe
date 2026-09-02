@@ -1,4 +1,4 @@
-import { getMetodos, getResumen, crearMetodo, actualizarMetodo, type MetodoPago } from '../api';
+import { getMetodos, getResumen, crearMetodo, actualizarMetodo, borrarMetodo, type MetodoPago } from '../api';
 import { money, esc } from '../format';
 import { iconoMetodo, refreshIcons } from '../icons';
 import { topbarBack } from '../chrome';
@@ -12,6 +12,8 @@ export async function renderMetodos(root: HTMLElement) {
 
   const editarBtn = (id: number) =>
     `<button type="button" class="icon-btn btn-editar" data-id="${id}" style="width:32px;height:32px;flex-shrink:0"><i data-lucide="pencil" style="width:14px;height:14px;"></i></button>`;
+  const borrarBtn = (id: number) =>
+    `<button type="button" class="icon-btn btn-borrar" data-id="${id}" style="width:32px;height:32px;flex-shrink:0"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>`;
 
   const formEditarTarjeta = (m: MetodoPago) => `
     <div class="inline-form" data-editar="${m.id}" hidden>
@@ -47,6 +49,7 @@ export async function renderMetodos(root: HTMLElement) {
         </div>
         ${salud ? `<div class="saldo"><div class="v">${money(salud.saldo_actual)}</div><div class="k">saldo</div></div>` : ''}
         ${editarBtn(m.id)}
+        ${borrarBtn(m.id)}
       </div>
       ${
         salud
@@ -64,6 +67,7 @@ export async function renderMetodos(root: HTMLElement) {
         <div class="icono"><i data-lucide="${iconoMetodo(m.tipo)}" style="width:19px;height:19px;"></i></div>
         <div class="info"><div class="nombre">${esc(m.nombre)}</div><div class="sub">${m.tipo === 'debito' ? 'Débito' : 'Sin corte'}</div></div>
         ${editarBtn(m.id)}
+        ${borrarBtn(m.id)}
       </div>
       ${formEditarSimple(m)}
     </div>`;
@@ -112,6 +116,18 @@ export async function renderMetodos(root: HTMLElement) {
     btn.addEventListener('click', () => {
       const el = root.querySelector<HTMLDivElement>(`[data-editar="${btn.dataset.id}"]`)!;
       el.hidden = !el.hidden;
+    });
+  });
+  root.querySelectorAll<HTMLButtonElement>('.btn-borrar').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Borrar este método de pago?')) return;
+      try {
+        await borrarMetodo(Number(btn.dataset.id));
+        await renderMetodos(root);
+        refreshIcons();
+      } catch (err) {
+        alert((err as Error).message);
+      }
     });
   });
   root.querySelectorAll<HTMLFormElement>('.form-editar').forEach((form) => {

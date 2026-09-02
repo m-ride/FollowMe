@@ -13,8 +13,9 @@ export async function renderGastos(root: HTMLElement) {
     .map((g) => {
       const rubro = rubros.find((r) => r.id === g.rubro_id);
       const metodo = metodos.find((m) => m.id === g.metodo_pago_id);
+      const href = g.rubro_id !== null ? `#/rubro?id=${g.rubro_id}` : '#/pendientes';
       return `
-        <a href="#/rubro?id=${g.rubro_id}" class="mov-item" style="text-decoration:none;color:inherit">
+        <a href="${href}" class="mov-item" style="text-decoration:none;color:inherit">
           <div class="icono"><i data-lucide="${iconoRubro(rubro?.nombre ?? '')}" style="width:17px;height:17px;"></i></div>
           <div class="info">
             <div class="desc">${esc(g.descripcion || '(sin descripción)')}</div>

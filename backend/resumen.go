@@ -176,10 +176,13 @@ func resumen(w http.ResponseWriter, r *http.Request) {
 
 	// Gasto del mes partido por clasificación del rubro (fijo/discrecional/sin
 	// clasificar) — sin clasificar es su propio balde, no se mezcla ni se oculta.
+	// LEFT JOIN (no INNER): un gasto que se quedó sin rubro (rubro_id NULL, porque el
+	// rubro se borró) debe seguir contando en el total, no desaparecer de la salud
+	// financiera — cae en "sin clasificar" igual que un rubro sin clasificacion.
 	var gastoFijo, gastoDiscrecional, gastoSinClasificar int64
 	rowsClasif, err := db.Query(ctx, `
 		SELECT r.clasificacion, SUM(g.monto)
-		FROM gasto g JOIN rubro r ON r.id = g.rubro_id
+		FROM gasto g LEFT JOIN rubro r ON r.id = g.rubro_id
 		WHERE to_char(g.fecha,'YYYY-MM') = $1
 		GROUP BY r.clasificacion`, periodo)
 	if err != nil {
@@ -316,6 +319,27 @@ func resumen(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Pendientes: registros que se quedaron sin método de pago o sin rubro porque el
+	// método/rubro original se borró (ON DELETE SET NULL) — requieren que el usuario
+	// les asigne uno nuevo. Ver pantalla "Pendientes".
+	var gastosSinMetodo, comprasSinTarjeta, gastosSinRubro, comprasSinRubro int
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM gasto WHERE metodo_pago_id IS NULL`).Scan(&gastosSinMetodo); err != nil {
+		fallo(w, err)
+		return
+	}
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM compra_msi WHERE tarjeta_id IS NULL`).Scan(&comprasSinTarjeta); err != nil {
+		fallo(w, err)
+		return
+	}
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM gasto WHERE rubro_id IS NULL`).Scan(&gastosSinRubro); err != nil {
+		fallo(w, err)
+		return
+	}
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM compra_msi WHERE rubro_id IS NULL`).Scan(&comprasSinRubro); err != nil {
+		fallo(w, err)
+		return
+	}
+
 	responder(w, map[string]any{
 		"periodo":          periodo,
 		"rubros":           rubros,
@@ -327,6 +351,12 @@ func resumen(w http.ResponseWriter, r *http.Request) {
 		"compromiso_msi": map[string]any{
 			"meses": meses,
 			"total": total,
+		},
+		"pendientes": map[string]any{
+			"gastos_sin_metodo":   gastosSinMetodo,
+			"compras_sin_tarjeta": comprasSinTarjeta,
+			"gastos_sin_rubro":    gastosSinRubro,
+			"compras_sin_rubro":   comprasSinRubro,
 		},
 	})
 }

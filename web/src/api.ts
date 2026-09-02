@@ -67,6 +67,7 @@ export interface Resumen {
   salud: Salud;
   fondo_emergencia?: FondoEmergencia;
   compromiso_msi: { meses: MesMSI[]; total: number };
+  pendientes: { gastos_sin_metodo: number; compras_sin_tarjeta: number; gastos_sin_rubro: number; compras_sin_rubro: number };
 }
 
 export interface Rubro {
@@ -108,6 +109,19 @@ export interface PuntoPatrimonio {
   monto: number;
 }
 
+export interface RubroTendencia {
+  rubro_id: number;
+  nombre: string;
+  montos: number[];
+}
+
+export interface TarjetaTendencia {
+  id: number;
+  nombre: string;
+  limite: number;
+  pct_utilizacion: number[];
+}
+
 export interface Respaldo {
   version: number;
   generado_en: string;
@@ -131,8 +145,8 @@ export interface MetodoPago {
 
 export interface Gasto {
   id: number;
-  rubro_id: number;
-  metodo_pago_id: number;
+  rubro_id: number | null;
+  metodo_pago_id: number | null;
   monto: number;
   fecha: string;
   descripcion: string;
@@ -149,8 +163,8 @@ export interface Cuota {
 
 export interface CompraMSI {
   id: number;
-  tarjeta_id: number;
-  rubro_id: number;
+  tarjeta_id: number | null;
+  rubro_id: number | null;
   descripcion: string;
   monto_total: number;
   plazo_meses: number;
@@ -189,12 +203,14 @@ export const actualizarRubro = (
   id: number,
   r: { nombre: string; monto_objetivo?: number; clasificacion?: 'fijo' | 'discrecional'; es_fondo_emergencia?: boolean }
 ) => patch(`rubros/${id}`, r);
+export const borrarRubro = (id: number) => del(`rubros/${id}`);
 export const getMetodos = () => get<MetodoPago[]>('metodos-pago');
 export const crearMetodo = (m: Omit<MetodoPago, 'id'>) => post<MetodoPago>('metodos-pago', m);
 export const actualizarMetodo = (
   id: number,
   m: { nombre: string; limite?: number; dia_corte?: number; dia_pago?: number }
 ) => patch(`metodos-pago/${id}`, m);
+export const borrarMetodo = (id: number) => del(`metodos-pago/${id}`);
 export const getAportaciones = (periodo?: string) =>
   get<Aportacion[]>(`aportaciones${periodo ? `?periodo=${periodo}` : ''}`);
 export const crearAportacion = (a: { rubro_id: number; fuente: 'yo' | 'pareja'; monto: number; periodo: string }) =>
@@ -203,11 +219,17 @@ export const borrarAportacion = (id: number) => del(`aportaciones/${id}`);
 export const getGastos = (periodo?: string) => get<Gasto[]>(`gastos${periodo ? `?periodo=${periodo}` : ''}`);
 export const crearGasto = (g: Omit<Gasto, 'id'>) => post<Gasto>('gastos', g);
 export const borrarGasto = (id: number) => del(`gastos/${id}`);
+export const actualizarGastoMetodo = (id: number, metodo_pago_id: number) =>
+  patch(`gastos/${id}/metodo-pago`, { metodo_pago_id });
+export const actualizarGastoRubro = (id: number, rubro_id: number) => patch(`gastos/${id}/rubro`, { rubro_id });
 export const crearCompraMSI = (
   c: Omit<CompraMSI, 'id' | 'cuotas'>
 ) => post<CompraMSI>('compras-msi', c);
 export const getComprasMSI = () => get<CompraMSI[]>('compras-msi');
 export const borrarCompraMSI = (id: number) => del(`compras-msi/${id}`);
+export const actualizarCompraTarjeta = (id: number, tarjeta_id: number) =>
+  patch(`compras-msi/${id}/tarjeta`, { tarjeta_id });
+export const actualizarCompraRubro = (id: number, rubro_id: number) => patch(`compras-msi/${id}/rubro`, { rubro_id });
 export const getIngresos = (periodo?: string) => get<Ingreso[]>(`ingresos${periodo ? `?periodo=${periodo}` : ''}`);
 export const crearIngreso = (i: Omit<Ingreso, 'id'>) => post<Ingreso>('ingresos', i);
 export const borrarIngreso = (id: number) => del(`ingresos/${id}`);
@@ -216,5 +238,9 @@ export const getTendencia = (meses?: number) =>
   get<{ meses: MesTendencia[] }>(`tendencia${meses ? `?meses=${meses}` : ''}`);
 export const getPatrimonioHistorico = (meses?: number) =>
   get<{ meses: PuntoPatrimonio[] }>(`patrimonio-historico${meses ? `?meses=${meses}` : ''}`);
+export const getTendenciaRubros = (meses?: number) =>
+  get<{ meses: string[]; rubros: RubroTendencia[] }>(`tendencia-rubros${meses ? `?meses=${meses}` : ''}`);
+export const getTendenciaTarjetas = (meses?: number) =>
+  get<{ meses: string[]; tarjetas: TarjetaTendencia[] }>(`tendencia-tarjetas${meses ? `?meses=${meses}` : ''}`);
 export const getExport = () => get<Respaldo>('export');
 export const importarDatos = (r: Respaldo) => post<void>('import', r);

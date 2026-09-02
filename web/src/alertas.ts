@@ -15,6 +15,16 @@ export const UMBRAL_RUBRO_ERROR = 100;
 export function calcularAlertas(r: Resumen): Alerta[] {
   const alertas: Alerta[] = [];
 
+  const pend =
+    r.pendientes.gastos_sin_metodo + r.pendientes.compras_sin_tarjeta + r.pendientes.gastos_sin_rubro + r.pendientes.compras_sin_rubro;
+  if (pend > 0) {
+    alertas.push({
+      nivel: 'warn',
+      texto: `${pend} movimiento${pend === 1 ? '' : 's'} sin método de pago — necesita${pend === 1 ? '' : 'n'} tu atención`,
+      href: '#/pendientes',
+    });
+  }
+
   const msi = r.salud.pct_ingreso_comprometido_msi;
   if (msi !== undefined && msi >= UMBRAL_MSI_WARN) {
     alertas.push({
