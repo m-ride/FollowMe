@@ -42,3 +42,19 @@ jobs:
       - run: ./backend/smoke.sh
         env:
           APP_TOKEN: dev
+
+  # Fase 1 del plan de escalado a usuarios (notas-internas/escalado_a_usuarios.md,
+  # no publicado): valida el schema y CRUD del stack local de Supabase que
+  # eventualmente reemplaza a backend+Render. Corre en paralelo al backend de Go
+  # actual — ninguno de los dos depende del otro todavía.
+  smoke-supabase:
+    name: Smoke E2E (Supabase local)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx supabase start
+      - run: bash supabase/smoke.sh
