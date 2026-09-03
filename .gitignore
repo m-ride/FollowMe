@@ -4,5 +4,8 @@
 # Config local con secretos
 .env
 
+# Dependencias del CLI de Supabase (raíz del repo)
+/node_modules
+
 # Notas/planeación internas — no son parte del producto, no se publican
 /notas-internas/
