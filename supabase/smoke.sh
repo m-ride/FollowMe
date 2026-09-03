@@ -34,7 +34,13 @@ echo "Dar de alta un usuario (como haría el admin de un hogar, vía service rol
 EMAIL="smoke-$(date +%s)@test.local"
 USER_ID=$(admin POST auth/v1/admin/users "{\"email\":\"$EMAIL\",\"password\":\"clave-de-prueba-123\",\"email_confirm\":true}" | jq -r .id)
 HOGAR_ID=$(admin POST rest/v1/hogar '{"nombre":"Hogar de prueba"}' | jq .[0].id)
-admin POST rest/v1/perfil "{\"id\":\"$USER_ID\",\"hogar_id\":$HOGAR_ID,\"nombre\":\"Smoke test\"}" >/dev/null
+admin POST rest/v1/perfil "{\"id\":\"$USER_ID\",\"hogar_id\":$HOGAR_ID,\"nombre\":\"Ana\"}" >/dev/null
+
+# Un segundo miembro del MISMO hogar — para probar que resumen().rubros[].aportaciones
+# trae más de un aportante (Fase 4: ya no es un enum fijo de 2, es cualquier perfil).
+PAREJA_EMAIL="smoke-pareja-$(date +%s)@test.local"
+PAREJA_ID=$(admin POST auth/v1/admin/users "{\"email\":\"$PAREJA_EMAIL\",\"password\":\"clave-de-prueba-123\",\"email_confirm\":true}" | jq -r .id)
+admin POST rest/v1/perfil "{\"id\":\"$PAREJA_ID\",\"hogar_id\":$HOGAR_ID,\"nombre\":\"Luis\"}" >/dev/null
 
 echo "Iniciar sesión como esa persona — de aquí en adelante, todo corre con SU sesión..."
 ACCESS_TOKEN=$(curl -sf -X POST "$AUTH/token?grant_type=password" \
@@ -63,8 +69,8 @@ COMIDA=$(req POST rubro '{"nombre":"Comida","tipo":"gasto"}' | jq .[0].id)
 EMERGENCIA=$(req POST rubro '{"nombre":"Emergencia","tipo":"ahorro","monto_objetivo":6000000}' | jq .[0].id)
 
 echo "Aportaciones..."
-req POST aportacion "{\"rubro_id\":$COMIDA,\"fuente\":\"yo\",\"monto\":400000,\"periodo\":\"2026-09\"}" >/dev/null
-req POST aportacion "{\"rubro_id\":$COMIDA,\"fuente\":\"pareja\",\"monto\":100000,\"periodo\":\"2026-09\"}" >/dev/null
+req POST aportacion "{\"rubro_id\":$COMIDA,\"usuario_id\":\"$USER_ID\",\"monto\":400000,\"periodo\":\"2026-09\"}" >/dev/null
+req POST aportacion "{\"rubro_id\":$COMIDA,\"usuario_id\":\"$PAREJA_ID\",\"monto\":100000,\"periodo\":\"2026-09\"}" >/dev/null
 
 echo "Gasto..."
 GASTO=$(req POST gasto "{\"rubro_id\":$COMIDA,\"metodo_pago_id\":$BBVA,\"monto\":120000,\"fecha\":\"2026-09-02\",\"descripcion\":\"super\"}" | jq .[0].id)
@@ -101,9 +107,9 @@ TARJ=$(req POST metodo_pago '{"nombre":"Nu","tipo":"credito","limite":5000000,"d
 COMIDA2=$(req POST rubro '{"nombre":"Comida","tipo":"gasto"}' | jq .[0].id)
 FONDO=$(req POST rubro '{"nombre":"Emergencia","tipo":"ahorro","monto_objetivo":6000000}' | jq .[0].id)
 
-req POST aportacion "{\"rubro_id\":$COMIDA2,\"fuente\":\"yo\",\"monto\":400000,\"periodo\":\"$MES\"}" >/dev/null
-req POST aportacion "{\"rubro_id\":$COMIDA2,\"fuente\":\"pareja\",\"monto\":100000,\"periodo\":\"$MES\"}" >/dev/null
-req POST aportacion "{\"rubro_id\":$FONDO,\"fuente\":\"yo\",\"monto\":1500000,\"periodo\":\"$MES\"}" >/dev/null
+req POST aportacion "{\"rubro_id\":$COMIDA2,\"usuario_id\":\"$USER_ID\",\"monto\":400000,\"periodo\":\"$MES\"}" >/dev/null
+req POST aportacion "{\"rubro_id\":$COMIDA2,\"usuario_id\":\"$PAREJA_ID\",\"monto\":100000,\"periodo\":\"$MES\"}" >/dev/null
+req POST aportacion "{\"rubro_id\":$FONDO,\"usuario_id\":\"$USER_ID\",\"monto\":1500000,\"periodo\":\"$MES\"}" >/dev/null
 req POST gasto "{\"rubro_id\":$COMIDA2,\"metodo_pago_id\":$TARJ,\"monto\":120000,\"fecha\":\"$HOY\",\"descripcion\":\"super\"}" >/dev/null
 
 echo "crear_compra_msi (RPC, transaccional)..."
@@ -116,6 +122,12 @@ R=$(rpc resumen "{\"p_periodo\":\"$MES\"}")
 DISP=$(echo "$R" | jq --argjson id "$COMIDA2" '.rubros[] | select(.id==$id) | .disponible')
 CUOTA_MES=$(echo "$R" | jq --argjson id "$COMIDA2" '.rubros[] | select(.id==$id) | .cuotas_msi')
 [ "$DISP" = "$((500000 - 120000 - CUOTA_MES))" ] || { echo "disponible $DISP no cuadra"; exit 1; }
+
+echo "Fase 4: aportaciones[] trae los dos aportantes del hogar, no un enum fijo de 2..."
+APORTANTES=$(echo "$R" | jq --argjson id "$COMIDA2" '[.rubros[] | select(.id==$id) | .aportaciones[]] | length')
+[ "$APORTANTES" = "2" ] || { echo "esperaba 2 aportantes en Comida, hubo $APORTANTES"; exit 1; }
+NOMBRE_ANA=$(echo "$R" | jq -r --argjson id "$COMIDA2" --arg uid "$USER_ID" '.rubros[] | select(.id==$id) | .aportaciones[] | select(.usuario_id==$uid) | .nombre')
+[ "$NOMBRE_ANA" = "Ana" ] || { echo "el nombre del aportante no vino del perfil (esperaba Ana, vino '$NOMBRE_ANA')"; exit 1; }
 
 AVANCE=$(echo "$R" | jq --argjson id "$FONDO" '.ahorro[] | select(.id==$id) | .avance_pct')
 [ "$AVANCE" = "25" ] || { echo "avance $AVANCE != 25"; exit 1; }

@@ -56,9 +56,17 @@ guardarlas en ningún lado.
   primero. No necesita ser idempotente (a diferencia de `backend/smoke.sh`)
   porque corre contra una DB que se resetea con `db reset`.
 
+- `migrations/20260903050941_aportantes.sql` — `aportacion.fuente`
+  (`'yo'|'pareja'`, enum fijo de 2 valores) se reemplaza por `usuario_id`
+  (cualquier `perfil` del hogar). `resumen()` actualizado:
+  `rubros[].aportado_yo/aportado_pareja` pasa a ser
+  `rubros[].aportaciones[]`, una fila por aportante con su nombre (de
+  `perfil`) y el monto. `smoke.sh` ahora da de alta un segundo miembro del
+  mismo hogar para probar que el arreglo trae a los dos, no solo que el
+  campo existe.
+
 ## Qué falta (ver el plan completo en notas-internas/)
 
-`aportacion.fuente` → `usuario_id` (para que "yo/pareja" deje de ser un
-enum fijo de 2 valores y pase a ser cualquier miembro del hogar), reescribir
-`api.ts` del frontend con `supabase-js`, y finalmente el cutover de
-producción (Neon/Render se dan de baja).
+Reescribir `api.ts` del frontend con `supabase-js` (las ~20 pantallas casi
+no cambian si `api.ts` mantiene sus firmas — ver §3/§5 del plan), y
+finalmente el cutover de producción (Neon/Render se dan de baja).
