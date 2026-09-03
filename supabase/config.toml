@@ -216,6 +216,11 @@ web3 = 30
 # secret = ""
 
 [auth.email]
+# El login por correo+contraseña se queda prendido — solo se apaga el REGISTRO
+# público (enable_signup abajo). Sin esta línea, `supabase config push` puede
+# apagar el proveedor de correo entero (nos pasó una vez: nadie podía iniciar
+# sesión, ni siquiera con cuentas ya creadas por el admin).
+enabled = true
 # Allow/disallow new user signups via email to your project.
 enable_signup = false
 # If enabled, a user will be required to confirm any email change on both the old, and new email
