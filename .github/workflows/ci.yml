@@ -57,4 +57,5 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npx supabase start
+      - run: npx supabase test db --local
       - run: bash supabase/smoke.sh

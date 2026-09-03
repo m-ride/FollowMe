@@ -24,6 +24,11 @@ req() {
     -H "Content-Type: application/json" -H "Prefer: return=representation" \
     ${body:+-d "$body"}
 }
+rpc() {
+  curl -sf -X POST "$REST/rpc/$1" \
+    -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" \
+    -H "Content-Type: application/json" -d "$2"
+}
 
 echo "Métodos de pago..."
 BBVA=$(req POST metodo_pago '{"nombre":"BBVA Azul","tipo":"credito","limite":4500000,"dia_corte":15,"dia_pago":5}' | jq .[0].id)
@@ -64,4 +69,51 @@ if req POST rubro '{"nombre":"Otro ahorro","tipo":"ahorro","es_fondo_emergencia"
   echo "debió fallar por el índice único de es_fondo_emergencia"; exit 1
 fi
 
-echo "smoke (supabase local) OK — gasto=$GASTO compra=$COMPRA metodo_borrado=$BBVA rubro_borrado=$COMIDA"
+echo "--- Fase 2: mismo escenario exacto de backend/smoke.sh, contra las funciones RPC ---"
+
+MES=$(date +%Y-%m)
+HOY=$(date +%F)
+TARJ=$(req POST metodo_pago '{"nombre":"Nu","tipo":"credito","limite":5000000,"dia_corte":15,"dia_pago":5}' | jq .[0].id)
+COMIDA2=$(req POST rubro '{"nombre":"Comida","tipo":"gasto"}' | jq .[0].id)
+FONDO=$(req POST rubro '{"nombre":"Emergencia","tipo":"ahorro","monto_objetivo":6000000}' | jq .[0].id)
+
+req POST aportacion "{\"rubro_id\":$COMIDA2,\"fuente\":\"yo\",\"monto\":400000,\"periodo\":\"$MES\"}" >/dev/null
+req POST aportacion "{\"rubro_id\":$COMIDA2,\"fuente\":\"pareja\",\"monto\":100000,\"periodo\":\"$MES\"}" >/dev/null
+req POST aportacion "{\"rubro_id\":$FONDO,\"fuente\":\"yo\",\"monto\":1500000,\"periodo\":\"$MES\"}" >/dev/null
+req POST gasto "{\"rubro_id\":$COMIDA2,\"metodo_pago_id\":$TARJ,\"monto\":120000,\"fecha\":\"$HOY\",\"descripcion\":\"super\"}" >/dev/null
+
+echo "crear_compra_msi (RPC, transaccional)..."
+COMPRA2=$(rpc crear_compra_msi "{\"p_tarjeta_id\":$TARJ,\"p_rubro_id\":$COMIDA2,\"p_descripcion\":\"licuadora\",\"p_monto_total\":100000,\"p_plazo_meses\":3,\"p_fecha_compra\":\"$HOY\"}")
+CUOTAS=$(req GET "cuota_msi?compra_id=eq.$COMPRA2" | jq 'length')
+[ "$CUOTAS" = "3" ] || { echo "esperaba 3 cuotas de crear_compra_msi, hubo $CUOTAS"; exit 1; }
+
+echo "resumen() vía RPC — mismos cálculos que /api/resumen..."
+R=$(rpc resumen "{\"p_periodo\":\"$MES\"}")
+DISP=$(echo "$R" | jq --argjson id "$COMIDA2" '.rubros[] | select(.id==$id) | .disponible')
+CUOTA_MES=$(echo "$R" | jq --argjson id "$COMIDA2" '.rubros[] | select(.id==$id) | .cuotas_msi')
+[ "$DISP" = "$((500000 - 120000 - CUOTA_MES))" ] || { echo "disponible $DISP no cuadra"; exit 1; }
+
+AVANCE=$(echo "$R" | jq --argjson id "$FONDO" '.ahorro[] | select(.id==$id) | .avance_pct')
+[ "$AVANCE" = "25" ] || { echo "avance $AVANCE != 25"; exit 1; }
+
+TOTAL=$(echo "$R" | jq --argjson id "$TARJ" '[.compromiso_msi.meses[].por_tarjeta[] | select(.tarjeta_id==$id) | .monto] | add')
+[ "$TOTAL" = 100000 ] || { echo "compromiso $TOTAL != 100000"; exit 1; }
+
+echo "fondo de emergencia..."
+# EMERGENCIA (Fase 1, arriba) ya quedó marcada como fondo de emergencia — el índice
+# único solo permite una a la vez, hay que desmarcarla antes de marcar esta otra.
+req PATCH "rubro?id=eq.$EMERGENCIA" '{"es_fondo_emergencia":false}' >/dev/null
+req PATCH "rubro?id=eq.$FONDO" '{"es_fondo_emergencia":true}' >/dev/null
+FONDO_RESP=$(rpc resumen "{\"p_periodo\":\"$MES\"}")
+FONDO_ID=$(echo "$FONDO_RESP" | jq '.fondo_emergencia.rubro_id')
+[ "$FONDO_ID" = "$FONDO" ] || { echo "fondo_emergencia.rubro_id $FONDO_ID != $FONDO"; exit 1; }
+
+echo "tendencia()/tendencia_rubros()/tendencia_tarjetas() vía RPC..."
+TEND_MESES=$(rpc tendencia '{"p_meses":3}' | jq '.meses | length')
+[ "$TEND_MESES" = 3 ] || { echo "tendencia trajo $TEND_MESES meses, esperaba 3"; exit 1; }
+TR_COMIDA=$(rpc tendencia_rubros '{"p_meses":3}' | jq --argjson id "$COMIDA2" '[.rubros[] | select(.rubro_id==$id) | .montos[-1]][0]')
+[ "$TR_COMIDA" -ge 120000 ] || { echo "tendencia_rubros: gasto del mes en Comida $TR_COMIDA < 120000"; exit 1; }
+TT_PUNTOS=$(rpc tendencia_tarjetas '{"p_meses":3}' | jq --argjson id "$TARJ" '[.tarjetas[] | select(.id==$id) | .pct_utilizacion | length][0]')
+[ "$TT_PUNTOS" = 3 ] || { echo "tendencia_tarjetas: $TT_PUNTOS puntos para la tarjeta, esperaba 3"; exit 1; }
+
+echo "smoke (supabase local) OK — gasto=$GASTO compra=$COMPRA metodo_borrado=$BBVA rubro_borrado=$COMIDA — resumen: disponible=$DISP avance=$AVANCE compromiso=$TOTAL fondo=$FONDO_ID tendencia_meses=$TEND_MESES"
