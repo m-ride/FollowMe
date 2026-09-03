@@ -1,32 +1,56 @@
 #!/usr/bin/env bash
-# Smoke test del stack local de Supabase (Fase 1 del plan de escalado — ver
-# notas-internas/escalado_a_usuarios.md): confirma que el CRUD vía PostgREST
-# funciona igual que el backend de Go que reemplaza, incluyendo el
-# comportamiento ON DELETE SET NULL de metodo_pago/rubro sobre gasto/compra_msi.
+# Smoke test del stack local de Supabase (ver notas-internas/escalado_a_usuarios.md):
+# confirma que el CRUD vía PostgREST/RPC funciona igual que el backend de Go que
+# reemplaza — incluyendo, desde la Fase 3, que corre bajo un usuario real con RLS,
+# no con la llave anon. Se da de alta un usuario + hogar + perfil con la service
+# role key (lo mismo que haría el admin al invitar a alguien — ver §5 del plan),
+# se inicia sesión como esa persona, y todo el resto del script opera con SU sesión,
+# igual que hará el frontend de verdad.
 #
-# A diferencia de backend/smoke.sh (corre contra una DB persistente y por eso
-# tiene que ser idempotente), este corre contra el stack local de `supabase
-# start`, que se resetea con `supabase db reset` — no hace falta idempotencia,
-# cada corrida empieza de una base limpia.
+# A diferencia de backend/smoke.sh (corre contra una DB persistente y por eso tiene
+# que ser idempotente), este corre contra el stack local de `supabase start`, que se
+# resetea con `supabase db reset` — no hace falta idempotencia.
 #
 # Uso: npx supabase start && npx supabase db reset && ./supabase/smoke.sh
 set -euo pipefail
 
-REST=${REST:-http://127.0.0.1:54321/rest/v1}
-# Llave anon estándar del stack local de Supabase (no es secreta, es la misma
-# para cualquier proyecto local — ver supabase/config.toml / salida de `start`).
+API=${API:-http://127.0.0.1:54321}
+REST=$API/rest/v1
+AUTH=$API/auth/v1
+# Llaves estándar del stack local de Supabase (no son secretas, son las mismas para
+# cualquier proyecto local — ver supabase/config.toml / salida de `supabase start`).
 ANON_KEY=${ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
+SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU}
+
+admin() {
+  local method=$1 path=$2 body=${3:-}
+  curl -sf -X "$method" "$API/$path" \
+    -H "apikey: $SERVICE_ROLE_KEY" -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+    -H "Content-Type: application/json" -H "Prefer: return=representation" \
+    ${body:+-d "$body"}
+}
+
+echo "Dar de alta un usuario (como haría el admin de un hogar, vía service role)..."
+EMAIL="smoke-$(date +%s)@test.local"
+USER_ID=$(admin POST auth/v1/admin/users "{\"email\":\"$EMAIL\",\"password\":\"clave-de-prueba-123\",\"email_confirm\":true}" | jq -r .id)
+HOGAR_ID=$(admin POST rest/v1/hogar '{"nombre":"Hogar de prueba"}' | jq .[0].id)
+admin POST rest/v1/perfil "{\"id\":\"$USER_ID\",\"hogar_id\":$HOGAR_ID,\"nombre\":\"Smoke test\"}" >/dev/null
+
+echo "Iniciar sesión como esa persona — de aquí en adelante, todo corre con SU sesión..."
+ACCESS_TOKEN=$(curl -sf -X POST "$AUTH/token?grant_type=password" \
+  -H "apikey: $ANON_KEY" -H "Content-Type: application/json" \
+  -d "{\"email\":\"$EMAIL\",\"password\":\"clave-de-prueba-123\"}" | jq -r .access_token)
 
 req() {
   local method=$1 path=$2 body=${3:-}
   curl -sf -X "$method" "$REST/$path" \
-    -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" \
+    -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ACCESS_TOKEN" \
     -H "Content-Type: application/json" -H "Prefer: return=representation" \
     ${body:+-d "$body"}
 }
 rpc() {
   curl -sf -X POST "$REST/rpc/$1" \
-    -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" \
+    -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ACCESS_TOKEN" \
     -H "Content-Type: application/json" -d "$2"
 }
 
@@ -116,4 +140,15 @@ TR_COMIDA=$(rpc tendencia_rubros '{"p_meses":3}' | jq --argjson id "$COMIDA2" '[
 TT_PUNTOS=$(rpc tendencia_tarjetas '{"p_meses":3}' | jq --argjson id "$TARJ" '[.tarjetas[] | select(.id==$id) | .pct_utilizacion | length][0]')
 [ "$TT_PUNTOS" = 3 ] || { echo "tendencia_tarjetas: $TT_PUNTOS puntos para la tarjeta, esperaba 3"; exit 1; }
 
-echo "smoke (supabase local) OK — gasto=$GASTO compra=$COMPRA metodo_borrado=$BBVA rubro_borrado=$COMIDA — resumen: disponible=$DISP avance=$AVANCE compromiso=$TOTAL fondo=$FONDO_ID tendencia_meses=$TEND_MESES"
+echo "Aislamiento real entre hogares, de punta a punta por HTTP (no solo en SQL — ver supabase/tests/database/rls.test.sql para la versión pgTAP)..."
+EMAIL2="smoke2-$(date +%s)@test.local"
+USER_ID2=$(admin POST auth/v1/admin/users "{\"email\":\"$EMAIL2\",\"password\":\"clave-de-prueba-123\",\"email_confirm\":true}" | jq -r .id)
+HOGAR_ID2=$(admin POST rest/v1/hogar '{"nombre":"Otro hogar"}' | jq .[0].id)
+admin POST rest/v1/perfil "{\"id\":\"$USER_ID2\",\"hogar_id\":$HOGAR_ID2,\"nombre\":\"Otra persona\"}" >/dev/null
+TOKEN2=$(curl -sf -X POST "$AUTH/token?grant_type=password" \
+  -H "apikey: $ANON_KEY" -H "Content-Type: application/json" \
+  -d "{\"email\":\"$EMAIL2\",\"password\":\"clave-de-prueba-123\"}" | jq -r .access_token)
+RUBROS_OTRO_HOGAR=$(curl -sf "$REST/rubro" -H "apikey: $ANON_KEY" -H "Authorization: Bearer $TOKEN2" | jq 'length')
+[ "$RUBROS_OTRO_HOGAR" = "0" ] || { echo "otro hogar ve $RUBROS_OTRO_HOGAR rubros ajenos — RLS no está aislando"; exit 1; }
+
+echo "smoke (supabase local) OK — hogar=$HOGAR_ID gasto=$GASTO compra=$COMPRA metodo_borrado=$BBVA rubro_borrado=$COMIDA — resumen: disponible=$DISP avance=$AVANCE compromiso=$TOTAL fondo=$FONDO_ID tendencia_meses=$TEND_MESES — aislamiento verificado contra hogar=$HOGAR_ID2"
