@@ -3,3 +3,6 @@
 
 # Config local con secretos
 .env
+
+# Notas/planeación internas — no son parte del producto, no se publican
+/notas-internas/
