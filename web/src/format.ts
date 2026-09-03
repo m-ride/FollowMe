@@ -26,6 +26,11 @@ export const mesAnterior = (periodo: string): string => {
 
 export const periodoActual = (): string => new Date().toISOString().slice(0, 7);
 
+// "Ana", "Ana y Luis", "Ana, Luis y Ceci" — un hogar puede tener cualquier número de
+// miembros (Fase 5 del escalado a usuarios), ya no es siempre "tú y tu pareja".
+export const listaNombres = (nombres: string[]): string =>
+  nombres.length <= 1 ? (nombres[0] ?? '') : `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}`;
+
 export interface Delta {
   texto: string;
   color: string;

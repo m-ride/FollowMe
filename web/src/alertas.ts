@@ -45,7 +45,7 @@ export function calcularAlertas(r: Resumen): Alerta[] {
   }
 
   for (const x of r.rubros) {
-    const total = x.aportado_yo + x.aportado_pareja;
+    const total = x.aportaciones.reduce((s, a) => s + a.monto, 0);
     const usado = x.gastado + x.cuotas_msi;
     const pct = total > 0 ? (usado / total) * 100 : 0;
     if (pct >= UMBRAL_RUBRO_WARN) {

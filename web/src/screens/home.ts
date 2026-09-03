@@ -1,14 +1,13 @@
-import { getResumen, getTendencia } from '../api';
-import { money, esc, mesLargo, deltaPct, deltaPuntos, type Delta } from '../format';
+import { getResumen, getTendencia, getMiPerfil, getMiembrosHogar } from '../api';
+import { money, esc, mesLargo, listaNombres, deltaPct, deltaPuntos, type Delta } from '../format';
 import { iconoRubro } from '../icons';
-import { NOMBRE, PAREJA_NOMBRE } from '../config';
 import { renderNav } from '../nav';
 import { calcularAlertas, renderAlertasBanner, UMBRAL_RUBRO_WARN, UMBRAL_RUBRO_ERROR, UMBRAL_MSI_ERROR } from '../alertas';
 
 export async function renderHome(root: HTMLElement) {
   root.innerHTML = `<div class="screen"><div class="placeholder">Cargando…</div></div>`;
 
-  const [r, tendencia] = await Promise.all([getResumen(), getTendencia(2)]);
+  const [r, tendencia, yo, hogar] = await Promise.all([getResumen(), getTendencia(2), getMiPerfil(), getMiembrosHogar()]);
   const [mesAnt, mesAct] = tendencia.meses;
 
   const sinDatoAnterior: Delta = { texto: '—', color: 'inherit' };
@@ -20,13 +19,13 @@ export async function renderHome(root: HTMLElement) {
       : sinDatoAnterior;
 
   const totalDisponible = r.rubros.reduce((s, x) => s + x.disponible, 0);
-  const totalAportado = r.rubros.reduce((s, x) => s + x.aportado_yo + x.aportado_pareja, 0);
+  const totalAportado = r.rubros.reduce((s, x) => s + x.aportaciones.reduce((s2, a) => s2 + a.monto, 0), 0);
   const msiEsteMes = r.compromiso_msi.meses.find((m) => m.mes === r.periodo)?.total ?? 0;
 
   const RANGO = { error: 0, warn: 1, ok: 2 };
   const rubros = r.rubros
     .map((x) => {
-      const total = x.aportado_yo + x.aportado_pareja;
+      const total = x.aportaciones.reduce((s, a) => s + a.monto, 0);
       const usado = x.gastado + x.cuotas_msi;
       const pct = total > 0 ? (usado / total) * 100 : 0;
       const estado = pct >= UMBRAL_RUBRO_ERROR ? 'error' : pct >= UMBRAL_RUBRO_WARN ? 'warn' : 'ok';
@@ -62,7 +61,7 @@ export async function renderHome(root: HTMLElement) {
       <div class="topbar">
         <div>
           <div class="label">${mesLargo(r.periodo)}</div>
-          <div class="titulo">Hola, ${esc(NOMBRE)}</div>
+          <div class="titulo">Hola, ${esc(yo.nombre)}</div>
         </div>
         <div style="display:flex;gap:8px">
           <a href="#/salud" class="icon-btn"><i data-lucide="heart-pulse" style="width:18px;height:18px;"></i></a>
@@ -78,7 +77,7 @@ export async function renderHome(root: HTMLElement) {
         <div class="hero-card">
           <div class="etiqueta">Disponible este mes</div>
           <div class="monto">${money(totalDisponible)}</div>
-          <div class="detalle">de ${money(totalAportado)} · aportan ${esc(NOMBRE)} y ${esc(PAREJA_NOMBRE)}</div>
+          <div class="detalle">de ${money(totalAportado)} · aportan ${esc(listaNombres(hogar.map((p) => p.nombre)))}</div>
           <div class="stats">
             <div class="stat"><div class="k">MSI este mes</div><div class="v">${money(msiEsteMes)}</div></div>
             ${

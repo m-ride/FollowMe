@@ -65,8 +65,23 @@ guardarlas en ningún lado.
   mismo hogar para probar que el arreglo trae a los dos, no solo que el
   campo existe.
 
+- **`web/src/api.ts` reescrito con `supabase-js`** — CRUD simple vía
+  PostgREST directo, `resumen`/`tendencia*`/`crear_compra_msi` vía
+  `supabase.rpc(...)`. `web/src/gate.ts` es ahora un login real (email +
+  password, `supabase.auth.signInWithPassword`) en vez del candado de un
+  solo secreto compartido — la sesión la persiste sola `supabase-js`
+  (`web/src/supabase.ts`). Pantallas con pills "Tú/Pareja" (`nuevoGasto.ts`,
+  `detalleRubro.ts`, `ahorro.ts`) ahora arman un selector dinámico de los
+  miembros reales del hogar. `NOMBRE`/`PAREJA_NOMBRE` (antes env vars de
+  build) se reemplazan por el nombre real de cada `perfil`.
+  Probado de punta a punta con Playwright contra el stack local (login,
+  crear gasto, crear compra MSI con cronograma, borrar método de pago y
+  verlo aparecer en Pendientes, exportar respaldo) — no solo que compile.
+  **`web/.env` sigue apuntando al stack local — nada de esto toca
+  producción todavía** (Vercel/Render no se tocan hasta el cutover).
+
 ## Qué falta (ver el plan completo en notas-internas/)
 
-Reescribir `api.ts` del frontend con `supabase-js` (las ~20 pantallas casi
-no cambian si `api.ts` mantiene sus firmas — ver §3/§5 del plan), y
-finalmente el cutover de producción (Neon/Render se dan de baja).
+El cutover de producción: crear el proyecto real de Supabase en la nube,
+migrar los datos reales de Neon, apuntar `web/.env` de Vercel a ese
+proyecto, y dar de baja Neon/Render.

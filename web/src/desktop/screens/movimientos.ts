@@ -1,4 +1,4 @@
-import { getGastos, getAportaciones, getIngresos, getComprasMSI, getRubros, getMetodos } from '../../api';
+import { getGastos, getAportaciones, getIngresos, getComprasMSI, getRubros, getMetodos, getMiembrosHogar } from '../../api';
 import { money, esc, fechaCorta } from '../../format';
 import { renderTabla, activarOrden, type Columna } from '../tabla';
 import { refreshIcons } from '../../icons';
@@ -15,16 +15,18 @@ interface FilaMov {
 export async function renderMovimientos(root: HTMLElement) {
   root.innerHTML = `<div class="placeholder">Cargando…</div>`;
 
-  const [gastos, aportaciones, ingresos, compras, rubros, metodos] = await Promise.all([
+  const [gastos, aportaciones, ingresos, compras, rubros, metodos, hogar] = await Promise.all([
     getGastos(),
     getAportaciones(),
     getIngresos(),
     getComprasMSI(),
     getRubros(),
     getMetodos(),
+    getMiembrosHogar(),
   ]);
   const nombreRubro = (id: number | null) => rubros.find((r) => r.id === id)?.nombre ?? '—';
   const nombreMetodo = (id: number | null) => metodos.find((m) => m.id === id)?.nombre ?? '—';
+  const nombreAportante = (id: string | null) => hogar.find((p) => p.id === id)?.nombre ?? '—';
 
   const filas: FilaMov[] = [
     ...gastos.map((g): FilaMov => ({
@@ -39,7 +41,7 @@ export async function renderMovimientos(root: HTMLElement) {
       tipo: 'aportación',
       fecha: `${a.periodo}-01`,
       rubro: nombreRubro(a.rubro_id),
-      detalle: a.fuente === 'yo' ? 'Tú' : 'Pareja',
+      detalle: nombreAportante(a.usuario_id),
       monto: a.monto,
     })),
     ...ingresos.map((i): FilaMov => ({

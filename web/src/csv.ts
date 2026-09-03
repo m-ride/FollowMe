@@ -1,4 +1,4 @@
-import { getGastos, getAportaciones, getIngresos, getRubros, getMetodos } from './api';
+import { getGastos, getAportaciones, getIngresos, getRubros, getMetodos, getMiembrosHogar } from './api';
 
 export function descargar(contenido: string, nombre: string, tipo: string) {
   const blob = new Blob([contenido], { type: tipo });
@@ -15,22 +15,24 @@ const csvCelda = (v: string): string => (/[",\n]/.test(v) ? `"${v.replace(/"/g, 
 // Un solo CSV con columna "tipo" en vez de tres archivos — más fácil de tabular/
 // filtrar en Excel que cruzar varias hojas.
 export async function exportarMovimientosCSV() {
-  const [gastos, aportaciones, ingresos, rubros, metodos] = await Promise.all([
+  const [gastos, aportaciones, ingresos, rubros, metodos, hogar] = await Promise.all([
     getGastos(),
     getAportaciones(),
     getIngresos(),
     getRubros(),
     getMetodos(),
+    getMiembrosHogar(),
   ]);
   const nombreRubro = (id: number | null) => rubros.find((r) => r.id === id)?.nombre ?? '';
   const nombreMetodo = (id: number | null) => metodos.find((m) => m.id === id)?.nombre ?? '';
+  const nombreAportante = (id: string | null) => hogar.find((p) => p.id === id)?.nombre ?? '';
 
   const filas: string[][] = [['tipo', 'fecha_o_periodo', 'rubro', 'metodo_pago', 'fuente', 'monto_pesos', 'descripcion']];
   for (const g of gastos) {
     filas.push(['gasto', g.fecha, nombreRubro(g.rubro_id), nombreMetodo(g.metodo_pago_id), '', (g.monto / 100).toFixed(2), g.descripcion]);
   }
   for (const a of aportaciones) {
-    filas.push(['aportacion', a.periodo, nombreRubro(a.rubro_id), '', a.fuente, (a.monto / 100).toFixed(2), '']);
+    filas.push(['aportacion', a.periodo, nombreRubro(a.rubro_id), '', nombreAportante(a.usuario_id), (a.monto / 100).toFixed(2), '']);
   }
   for (const i of ingresos) {
     filas.push(['ingreso', i.periodo, '', '', i.fuente, (i.monto / 100).toFixed(2), '']);

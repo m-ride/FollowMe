@@ -1,14 +1,12 @@
-import { getResumen, crearAportacion, actualizarRubro } from '../api';
-import { money, esc } from '../format';
+import { getResumen, crearAportacion, actualizarRubro, getMiPerfil, getMiembrosHogar } from '../api';
+import { money, esc, periodoActual } from '../format';
 import { iconoRubro, refreshIcons } from '../icons';
 import { renderNav } from '../nav';
-
-const periodoActual = () => new Date().toISOString().slice(0, 7);
 
 export async function renderAhorro(root: HTMLElement) {
   root.innerHTML = `<div class="screen"><div class="placeholder">Cargando…</div></div>${renderNav('/ahorro')}`;
 
-  const resumen = await getResumen();
+  const [resumen, yo, hogar] = await Promise.all([getResumen(), getMiPerfil(), getMiembrosHogar()]);
   const bolsas = resumen.ahorro;
   const totalAhorrado = bolsas.reduce((s, b) => s + b.saldo, 0);
   const metaTotal = bolsas.reduce((s, b) => s + (b.monto_objetivo ?? 0), 0);
@@ -75,10 +73,9 @@ export async function renderAhorro(root: HTMLElement) {
             </div>
           </div>
           <div class="campo">
-            <div class="k">Fuente</div>
-            <div class="pills" id="pills-fuente">
-              <span class="pill activa" data-f="yo">Tú</span>
-              <span class="pill" data-f="pareja">Pareja</span>
+            <div class="k">Quién aporta</div>
+            <div class="pills" id="pills-aportante">
+              ${hogar.map((p) => `<span class="pill ${p.id === yo.id ? 'activa' : ''}" data-uid="${p.id}">${esc(p.nombre)}</span>`).join('')}
             </div>
           </div>
           <div class="campo">
@@ -128,16 +125,16 @@ export async function renderAhorro(root: HTMLElement) {
 
   if (bolsas.length === 0) return;
 
-  let fuente: 'yo' | 'pareja' = 'yo';
+  let usuarioId: string = yo.id;
   const formWrap = root.querySelector<HTMLDivElement>('#form-aportar')!;
   root.querySelector('#toggle-aportar')!.addEventListener('click', () => {
     formWrap.hidden = !formWrap.hidden;
   });
-  root.querySelector('#pills-fuente')!.addEventListener('click', (e) => {
+  root.querySelector('#pills-aportante')!.addEventListener('click', (e) => {
     const p = (e.target as HTMLElement).closest<HTMLElement>('.pill');
     if (!p) return;
-    fuente = p.dataset.f as 'yo' | 'pareja';
-    root.querySelectorAll('#pills-fuente .pill').forEach((el) => el.classList.toggle('activa', el === p));
+    usuarioId = p.dataset.uid!;
+    root.querySelectorAll('#pills-aportante .pill').forEach((el) => el.classList.toggle('activa', el === p));
   });
   root.querySelector<HTMLFormElement>('#f')!.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -152,7 +149,7 @@ export async function renderAhorro(root: HTMLElement) {
     try {
       await crearAportacion({
         rubro_id: Number((root.querySelector<HTMLSelectElement>('#bolsa')!).value),
-        fuente,
+        usuario_id: usuarioId,
         monto,
         periodo: periodoActual(),
       });
