@@ -1,11 +1,23 @@
-import { API_URL, getToken, clearToken } from './config';
+// Fase 5 del plan de escalado a usuarios: esta capa habla directo con Supabase
+// (PostgREST + RPC) en vez de con la API de Go. Las pantallas (~20 archivos) siguen
+// importando estas mismas funciones con las mismas firmas — casi ninguna se enteró
+// del cambio. CRUD simple -> PostgREST directo (RLS decide qué se ve, no hay
+// backend con privilegios elevados de por medio). Lógica compleja (resumen,
+// tendencia*, cronograma MSI) -> funciones de Postgres vía supabase.rpc(...), ver
+// supabase/migrations/.
+import { supabase } from './supabase';
+
+export interface Aportante {
+  usuario_id: string | null;
+  nombre: string | null;
+  monto: number;
+}
 
 export interface RubroResumen {
   id: number;
   nombre: string;
   clasificacion?: 'fijo' | 'discrecional';
-  aportado_yo: number;
-  aportado_pareja: number;
+  aportaciones: Aportante[];
   gastado: number;
   cuotas_msi: number;
   disponible: number;
@@ -89,7 +101,7 @@ export interface Ingreso {
 export interface Aportacion {
   id: number;
   rubro_id: number;
-  fuente: 'yo' | 'pareja';
+  usuario_id: string | null;
   monto: number;
   periodo: string;
 }
@@ -120,18 +132,6 @@ export interface TarjetaTendencia {
   nombre: string;
   limite: number;
   pct_utilizacion: number[];
-}
-
-export interface Respaldo {
-  version: number;
-  generado_en: string;
-  metodo_pago: MetodoPago[];
-  rubro: Rubro[];
-  aportacion: Aportacion[];
-  gasto: Gasto[];
-  compra_msi: CompraMSI[];
-  ingreso: Ingreso[];
-  patrimonio_historico: { periodo: string; monto: number; registrado_en: string }[];
 }
 
 export interface MetodoPago {
@@ -172,75 +172,240 @@ export interface CompraMSI {
   cuotas: Cuota[];
 }
 
-async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}/${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${getToken() ?? ''}`,
-      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
-      ...init?.headers,
-    },
-  });
-  if (res.status === 401) {
-    // El token guardado ya no sirve (nunca fue válido, o lo rotaron) — de vuelta al candado.
-    clearToken();
-    location.reload();
-    throw new Error('no autorizado');
-  }
-  if (!res.ok) throw new Error(`${path}: ${res.status} ${await res.text()}`);
-  return res.status === 204 ? (undefined as T) : res.json();
+export interface Perfil {
+  id: string;
+  hogar_id: number;
+  nombre: string;
 }
 
-const get = <T>(path: string) => req<T>(path);
-const post = <T>(path: string, body: unknown) => req<T>(path, { method: 'POST', body: JSON.stringify(body) });
-const patch = (path: string, body: unknown) => req<void>(path, { method: 'PATCH', body: JSON.stringify(body) });
-const del = (path: string) => req<void>(path, { method: 'DELETE' });
+export interface Respaldo {
+  version: number;
+  generado_en: string;
+  metodo_pago: MetodoPago[];
+  rubro: Rubro[];
+  aportacion: Aportacion[];
+  gasto: Gasto[];
+  compra_msi: CompraMSI[];
+  ingreso: Ingreso[];
+}
 
-export const getResumen = (periodo?: string) => get<Resumen>(`resumen${periodo ? `?periodo=${periodo}` : ''}`);
-export const getRubros = () => get<Rubro[]>('rubros');
-export const crearRubro = (r: Omit<Rubro, 'id'>) => post<Rubro>('rubros', r);
-export const actualizarRubro = (
+// Todas las llamadas a Supabase devuelven { data, error } — esto revienta el error
+// como excepción (mismo patrón que el req() de fetch que reemplaza) para no repetir
+// el chequeo en cada función de abajo.
+function ok<T>({ data, error }: { data: T | null; error: { message: string } | null }): T {
+  if (error) throw new Error(error.message);
+  return data as T;
+}
+
+// --- identidad / hogar ---
+
+export const getMiPerfil = async (): Promise<Perfil> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('no autenticado');
+  return ok(await supabase.from('perfil').select('*').eq('id', user.id).single());
+};
+
+// RLS ya limita esto a "mi hogar" — no hace falta filtrar por hogar_id a mano.
+export const getMiembrosHogar = async (): Promise<Perfil[]> =>
+  ok(await supabase.from('perfil').select('*').order('nombre')) ?? [];
+
+// --- resumen / tendencia / cronograma MSI (funciones de Postgres) ---
+
+export const getResumen = async (periodo?: string): Promise<Resumen> =>
+  ok(await supabase.rpc('resumen', { p_periodo: periodo ?? null }));
+export const getTendencia = async (meses?: number): Promise<{ meses: MesTendencia[] }> =>
+  ok(await supabase.rpc('tendencia', { p_meses: meses ?? 12 }));
+export const getTendenciaRubros = async (meses?: number): Promise<{ meses: string[]; rubros: RubroTendencia[] }> =>
+  ok(await supabase.rpc('tendencia_rubros', { p_meses: meses ?? 6 }));
+export const getTendenciaTarjetas = async (meses?: number): Promise<{ meses: string[]; tarjetas: TarjetaTendencia[] }> =>
+  ok(await supabase.rpc('tendencia_tarjetas', { p_meses: meses ?? 6 }));
+
+export const getPatrimonioHistorico = async (meses?: number): Promise<{ meses: PuntoPatrimonio[] }> => {
+  const filas = ok<PuntoPatrimonio[]>(
+    await supabase.from('patrimonio_historico').select('periodo, monto').order('periodo', { ascending: false }).limit(meses ?? 12)
+  );
+  return { meses: filas.slice().reverse() };
+};
+
+// --- rubros ---
+
+export const getRubros = async (): Promise<Rubro[]> => ok(await supabase.from('rubro').select('*').order('id'));
+export const crearRubro = async (r: Omit<Rubro, 'id'>): Promise<Rubro> => ok(await supabase.from('rubro').insert(r).select().single());
+export const actualizarRubro = async (
   id: number,
   r: { nombre: string; monto_objetivo?: number; clasificacion?: 'fijo' | 'discrecional'; es_fondo_emergencia?: boolean }
-) => patch(`rubros/${id}`, r);
-export const borrarRubro = (id: number) => del(`rubros/${id}`);
-export const getMetodos = () => get<MetodoPago[]>('metodos-pago');
-export const crearMetodo = (m: Omit<MetodoPago, 'id'>) => post<MetodoPago>('metodos-pago', m);
-export const actualizarMetodo = (
+): Promise<void> => {
+  ok(await supabase.from('rubro').update(r).eq('id', id));
+};
+export const borrarRubro = async (id: number): Promise<void> => {
+  ok(await supabase.from('rubro').delete().eq('id', id));
+};
+
+// --- métodos de pago ---
+
+export const getMetodos = async (): Promise<MetodoPago[]> => ok(await supabase.from('metodo_pago').select('*').order('id'));
+export const crearMetodo = async (m: Omit<MetodoPago, 'id'>): Promise<MetodoPago> =>
+  ok(await supabase.from('metodo_pago').insert(m).select().single());
+export const actualizarMetodo = async (
   id: number,
   m: { nombre: string; limite?: number; dia_corte?: number; dia_pago?: number }
-) => patch(`metodos-pago/${id}`, m);
-export const borrarMetodo = (id: number) => del(`metodos-pago/${id}`);
-export const getAportaciones = (periodo?: string) =>
-  get<Aportacion[]>(`aportaciones${periodo ? `?periodo=${periodo}` : ''}`);
-export const crearAportacion = (a: { rubro_id: number; fuente: 'yo' | 'pareja'; monto: number; periodo: string }) =>
-  post('aportaciones', a);
-export const borrarAportacion = (id: number) => del(`aportaciones/${id}`);
-export const getGastos = (periodo?: string) => get<Gasto[]>(`gastos${periodo ? `?periodo=${periodo}` : ''}`);
-export const crearGasto = (g: Omit<Gasto, 'id'>) => post<Gasto>('gastos', g);
-export const borrarGasto = (id: number) => del(`gastos/${id}`);
-export const actualizarGastoMetodo = (id: number, metodo_pago_id: number) =>
-  patch(`gastos/${id}/metodo-pago`, { metodo_pago_id });
-export const actualizarGastoRubro = (id: number, rubro_id: number) => patch(`gastos/${id}/rubro`, { rubro_id });
-export const crearCompraMSI = (
-  c: Omit<CompraMSI, 'id' | 'cuotas'>
-) => post<CompraMSI>('compras-msi', c);
-export const getComprasMSI = () => get<CompraMSI[]>('compras-msi');
-export const borrarCompraMSI = (id: number) => del(`compras-msi/${id}`);
-export const actualizarCompraTarjeta = (id: number, tarjeta_id: number) =>
-  patch(`compras-msi/${id}/tarjeta`, { tarjeta_id });
-export const actualizarCompraRubro = (id: number, rubro_id: number) => patch(`compras-msi/${id}/rubro`, { rubro_id });
-export const getIngresos = (periodo?: string) => get<Ingreso[]>(`ingresos${periodo ? `?periodo=${periodo}` : ''}`);
-export const crearIngreso = (i: Omit<Ingreso, 'id'>) => post<Ingreso>('ingresos', i);
-export const borrarIngreso = (id: number) => del(`ingresos/${id}`);
+): Promise<void> => {
+  ok(await supabase.from('metodo_pago').update(m).eq('id', id));
+};
+export const borrarMetodo = async (id: number): Promise<void> => {
+  ok(await supabase.from('metodo_pago').delete().eq('id', id));
+};
 
-export const getTendencia = (meses?: number) =>
-  get<{ meses: MesTendencia[] }>(`tendencia${meses ? `?meses=${meses}` : ''}`);
-export const getPatrimonioHistorico = (meses?: number) =>
-  get<{ meses: PuntoPatrimonio[] }>(`patrimonio-historico${meses ? `?meses=${meses}` : ''}`);
-export const getTendenciaRubros = (meses?: number) =>
-  get<{ meses: string[]; rubros: RubroTendencia[] }>(`tendencia-rubros${meses ? `?meses=${meses}` : ''}`);
-export const getTendenciaTarjetas = (meses?: number) =>
-  get<{ meses: string[]; tarjetas: TarjetaTendencia[] }>(`tendencia-tarjetas${meses ? `?meses=${meses}` : ''}`);
-export const getExport = () => get<Respaldo>('export');
-export const importarDatos = (r: Respaldo) => post<void>('import', r);
+// --- aportaciones ---
+
+export const getAportaciones = async (periodo?: string): Promise<Aportacion[]> => {
+  let q = supabase.from('aportacion').select('*');
+  if (periodo) q = q.eq('periodo', periodo);
+  return ok(await q);
+};
+export const crearAportacion = async (a: { rubro_id: number; usuario_id: string; monto: number; periodo: string }): Promise<void> => {
+  ok(await supabase.from('aportacion').insert(a));
+};
+export const borrarAportacion = async (id: number): Promise<void> => {
+  ok(await supabase.from('aportacion').delete().eq('id', id));
+};
+
+// --- gastos ---
+
+export const getGastos = async (): Promise<Gasto[]> =>
+  ok(await supabase.from('gasto').select('*').order('fecha', { ascending: false }).order('id', { ascending: false }));
+export const crearGasto = async (g: Omit<Gasto, 'id'>): Promise<Gasto> => ok(await supabase.from('gasto').insert(g).select().single());
+export const borrarGasto = async (id: number): Promise<void> => {
+  ok(await supabase.from('gasto').delete().eq('id', id));
+};
+export const actualizarGastoMetodo = async (id: number, metodo_pago_id: number): Promise<void> => {
+  ok(await supabase.from('gasto').update({ metodo_pago_id }).eq('id', id));
+};
+export const actualizarGastoRubro = async (id: number, rubro_id: number): Promise<void> => {
+  ok(await supabase.from('gasto').update({ rubro_id }).eq('id', id));
+};
+
+// --- compras MSI ---
+
+export const crearCompraMSI = async (c: Omit<CompraMSI, 'id' | 'cuotas'>): Promise<CompraMSI> => {
+  const id = ok<number>(
+    await supabase.rpc('crear_compra_msi', {
+      p_tarjeta_id: c.tarjeta_id,
+      p_rubro_id: c.rubro_id,
+      p_descripcion: c.descripcion,
+      p_monto_total: c.monto_total,
+      p_plazo_meses: c.plazo_meses,
+      p_fecha_compra: c.fecha_compra,
+    })
+  );
+  return ok<CompraMSI>(await supabase.from('compra_msi').select('*, cuotas:cuota_msi(*)').eq('id', id).single());
+};
+export const getComprasMSI = async (): Promise<CompraMSI[]> =>
+  ok(await supabase.from('compra_msi').select('*, cuotas:cuota_msi(*)').order('id'));
+export const borrarCompraMSI = async (id: number): Promise<void> => {
+  ok(await supabase.from('compra_msi').delete().eq('id', id));
+};
+export const actualizarCompraTarjeta = async (id: number, tarjeta_id: number): Promise<void> => {
+  ok(await supabase.from('compra_msi').update({ tarjeta_id }).eq('id', id));
+};
+export const actualizarCompraRubro = async (id: number, rubro_id: number): Promise<void> => {
+  ok(await supabase.from('compra_msi').update({ rubro_id }).eq('id', id));
+};
+export const marcarCuota = async (id: number, pagada: boolean): Promise<void> => {
+  ok(await supabase.from('cuota_msi').update({ pagada }).eq('id', id));
+};
+
+// --- ingresos ---
+
+export const getIngresos = async (periodo?: string): Promise<Ingreso[]> => {
+  let q = supabase.from('ingreso').select('*');
+  if (periodo) q = q.eq('periodo', periodo);
+  return ok(await q);
+};
+export const crearIngreso = async (i: Omit<Ingreso, 'id'>): Promise<void> => {
+  ok(await supabase.from('ingreso').insert(i));
+};
+export const borrarIngreso = async (id: number): Promise<void> => {
+  ok(await supabase.from('ingreso').delete().eq('id', id));
+};
+
+// --- datos (respaldo) ---
+// A diferencia del backend de Go (una sola transacción TRUNCATE+reinsert), esto
+// compone varias llamadas del lado del cliente — más simple, pero ya no es atómico:
+// un fallo a medio importar puede dejar datos parciales. Aceptable para una
+// herramienta personal de uso poco frecuente; si hace falta la garantía atómica,
+// se puede portar a una función de Postgres más adelante (no bloquea el resto).
+
+export const getExport = async (): Promise<Respaldo> => {
+  const [metodo_pago, rubro, aportacion, gasto, compra_msi, ingreso] = await Promise.all([
+    getMetodos(),
+    getRubros(),
+    getAportaciones(),
+    getGastos(),
+    getComprasMSI(),
+    getIngresos(),
+  ]);
+  return { version: 1, generado_en: new Date().toISOString(), metodo_pago, rubro, aportacion, gasto, compra_msi, ingreso };
+};
+
+export const importarDatos = async (r: Respaldo): Promise<void> => {
+  const hogar = await getMiPerfil().then((p) => p.hogar_id);
+  // Solo lo de MI hogar, nunca un TRUNCATE global — a diferencia del Go original,
+  // esto es multi-tenant, borrar tiene que quedarse dentro de mis propios datos.
+  for (const tabla of ['cuota_msi', 'compra_msi', 'gasto', 'aportacion', 'ingreso', 'rubro', 'metodo_pago']) {
+    await supabase.from(tabla).delete().eq('hogar_id', hogar);
+  }
+
+  const metodoIds = new Map<number, number>();
+  for (const m of r.metodo_pago) {
+    const { id, ...body } = m;
+    const nuevo = await crearMetodo(body);
+    metodoIds.set(id, nuevo.id);
+  }
+  const rubroIds = new Map<number, number>();
+  for (const x of r.rubro) {
+    const { id, ...body } = x;
+    const nuevo = await crearRubro(body);
+    rubroIds.set(id, nuevo.id);
+  }
+  for (const a of r.aportacion) {
+    await supabase.from('aportacion').insert({
+      rubro_id: rubroIds.get(a.rubro_id),
+      usuario_id: a.usuario_id,
+      monto: a.monto,
+      periodo: a.periodo,
+    });
+  }
+  for (const g of r.gasto) {
+    await supabase.from('gasto').insert({
+      rubro_id: g.rubro_id ? rubroIds.get(g.rubro_id) : null,
+      metodo_pago_id: g.metodo_pago_id ? metodoIds.get(g.metodo_pago_id) : null,
+      monto: g.monto,
+      fecha: g.fecha,
+      descripcion: g.descripcion,
+    });
+  }
+  for (const c of r.compra_msi) {
+    // crear_compra_msi regenera el cronograma (montos/fechas) desde cero — eso es
+    // correcto (mismo total, mismo plazo), pero no sabe qué cuotas ya se habían
+    // marcado pagadas en el respaldo, así que se restaura aparte por numero_cuota.
+    const nueva = await crearCompraMSI({
+      tarjeta_id: c.tarjeta_id ? (metodoIds.get(c.tarjeta_id) ?? null) : null,
+      rubro_id: c.rubro_id ? (rubroIds.get(c.rubro_id) ?? null) : null,
+      descripcion: c.descripcion,
+      monto_total: c.monto_total,
+      plazo_meses: c.plazo_meses,
+      fecha_compra: c.fecha_compra,
+    });
+    const pagadas = new Set(c.cuotas.filter((q) => q.pagada).map((q) => q.numero_cuota));
+    await Promise.all(
+      nueva.cuotas.filter((q) => pagadas.has(q.numero_cuota)).map((q) => marcarCuota(q.id, true))
+    );
+  }
+  for (const i of r.ingreso) {
+    const { id, ...body } = i;
+    await crearIngreso(body);
+  }
+};

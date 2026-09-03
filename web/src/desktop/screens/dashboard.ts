@@ -20,7 +20,7 @@ export async function renderDashboard(root: HTMLElement) {
       : sinDatoAnterior;
 
   const totalDisponible = resumen.rubros.reduce((s, x) => s + x.disponible, 0);
-  const totalAportado = resumen.rubros.reduce((s, x) => s + x.aportado_yo + x.aportado_pareja, 0);
+  const totalAportado = resumen.rubros.reduce((s, x) => s + x.aportaciones.reduce((s2, a) => s2 + a.monto, 0), 0);
   const msiEsteMes = resumen.compromiso_msi.meses.find((m) => m.mes === resumen.periodo)?.total ?? 0;
   const totalAhorro = resumen.ahorro.reduce((s, b) => s + b.saldo, 0);
 

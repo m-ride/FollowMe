@@ -1,7 +1,8 @@
 import './styles/tokens.css';
 import './styles/app.css';
 import { refreshIcons } from './icons';
-import { tieneAcceso, renderCandado } from './gate';
+import { tieneSesion, renderLogin } from './gate';
+import { supabase } from './supabase';
 import { startRouter } from './router';
 import { renderHome } from './screens/home';
 import { renderNuevoGasto } from './screens/nuevoGasto';
@@ -52,11 +53,13 @@ function iniciar() {
   );
 }
 
-if (tieneAcceso()) {
-  iniciar();
-} else {
-  renderCandado(app, iniciar);
-}
+tieneSesion().then((ok) => (ok ? iniciar() : renderLogin(app, iniciar)));
+
+// Si el refresh token deja de servir (sesión revocada, expiró hace mucho), volver
+// siempre a la pantalla de login en vez de dejar la app en un estado a medias.
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') location.reload();
+});
 
 matchMedia('(min-width: 900px)').addEventListener('change', () => location.reload());
 

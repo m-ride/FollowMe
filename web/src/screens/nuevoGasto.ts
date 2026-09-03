@@ -1,4 +1,4 @@
-import { getRubros, getMetodos, getResumen, crearGasto, crearAportacion, crearIngreso } from '../api';
+import { getRubros, getMetodos, getResumen, crearGasto, crearAportacion, crearIngreso, getMiPerfil, getMiembrosHogar } from '../api';
 import { money, esc, periodoActual } from '../format';
 import { iconoRubro, refreshIcons } from '../icons';
 import { topbarBack } from '../chrome';
@@ -9,18 +9,24 @@ type Tipo = 'gasto' | 'aportacion' | 'ingreso';
 
 const AYUDA: Record<Tipo, string> = {
   gasto: 'Dinero que sale de un rubro (ej. comida, renta).',
-  aportacion: 'Dinero tuyo o de tu pareja que fondea el presupuesto de un rubro.',
+  aportacion: 'Dinero de alguien del hogar que fondea el presupuesto de un rubro.',
   ingreso: 'Dinero que entra (salario, bono, etc.), sin ligarlo a un rubro.',
 };
 
 export async function renderNuevoGasto(root: HTMLElement) {
   root.innerHTML = `<div class="screen">${topbarBack('Nuevo', '/')}<div class="placeholder">Cargando…</div></div>`;
 
-  const [rubros, metodos, resumen] = await Promise.all([getRubros(), getMetodos(), getResumen()]);
+  const [rubros, metodos, resumen, yo, hogar] = await Promise.all([
+    getRubros(),
+    getMetodos(),
+    getResumen(),
+    getMiPerfil(),
+    getMiembrosHogar(),
+  ]);
   const rubrosGasto = rubros.filter((r) => r.tipo === 'gasto');
   let tipo: Tipo = 'gasto';
   let rubroId = rubrosGasto[0]?.id;
-  let fuente: 'yo' | 'pareja' = 'yo';
+  let usuarioId: string = yo.id;
 
   const disponibleDe = (id?: number) => resumen.rubros.find((r) => r.id === id)?.disponible ?? null;
 
@@ -52,10 +58,9 @@ export async function renderNuevoGasto(root: HTMLElement) {
           <input id="fuente-ingreso" type="text" placeholder="Ej. Nómina, Bono del Q, Freelance" />
         </div>
         <div class="campo" id="campo-fuente" hidden>
-          <div class="k">Fuente</div>
-          <div class="pills" id="pills-fuente">
-            <span class="pill activa" data-f="yo">Tú</span>
-            <span class="pill" data-f="pareja">Pareja</span>
+          <div class="k">Quién aporta</div>
+          <div class="pills" id="pills-aportante">
+            ${hogar.map((p) => `<span class="pill ${p.id === yo.id ? 'activa' : ''}" data-uid="${p.id}">${esc(p.nombre)}</span>`).join('')}
           </div>
         </div>
         <div class="campo" id="campo-metodo">
@@ -155,11 +160,11 @@ export async function renderNuevoGasto(root: HTMLElement) {
     pintarHint();
   });
 
-  root.querySelector('#pills-fuente')!.addEventListener('click', (e) => {
+  root.querySelector('#pills-aportante')!.addEventListener('click', (e) => {
     const p = (e.target as HTMLElement).closest<HTMLElement>('.pill');
     if (!p) return;
-    fuente = p.dataset.f as 'yo' | 'pareja';
-    root.querySelectorAll('#pills-fuente .pill').forEach((el) => el.classList.toggle('activa', el === p));
+    usuarioId = p.dataset.uid!;
+    root.querySelectorAll('#pills-aportante .pill').forEach((el) => el.classList.toggle('activa', el === p));
   });
 
   root.querySelector<HTMLFormElement>('#f')!.addEventListener('submit', async (e) => {
@@ -184,7 +189,7 @@ export async function renderNuevoGasto(root: HTMLElement) {
           descripcion: (root.querySelector<HTMLInputElement>('#descripcion')!).value,
         });
       } else if (tipo === 'aportacion') {
-        await crearAportacion({ rubro_id: rubroId!, fuente, monto, periodo: periodoActual() });
+        await crearAportacion({ rubro_id: rubroId!, usuario_id: usuarioId, monto, periodo: periodoActual() });
       } else {
         await crearIngreso({ fuente: fuenteIngreso, monto, periodo: periodoActual() });
       }

@@ -25,7 +25,7 @@ export async function renderPresupuesto(root: HTMLElement) {
     </tr>`;
 
   const filasGasto = resumen.rubros
-    .map((r) => filaGasto(r.id, r.nombre, r.clasificacion, r.aportado_yo + r.aportado_pareja, r.gastado + r.cuotas_msi, r.disponible))
+    .map((r) => filaGasto(r.id, r.nombre, r.clasificacion, r.aportaciones.reduce((s, a) => s + a.monto, 0), r.gastado + r.cuotas_msi, r.disponible))
     .join('');
 
   const filaAhorro = (id: number, nombre: string, saldo: number, meta: number | undefined, esFondo: boolean) => `

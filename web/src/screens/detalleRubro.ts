@@ -1,4 +1,15 @@
-import { getResumen, getGastos, getMetodos, crearAportacion, borrarGasto, actualizarRubro, borrarRubro, getAportaciones } from '../api';
+import {
+  getResumen,
+  getGastos,
+  getMetodos,
+  crearAportacion,
+  borrarGasto,
+  actualizarRubro,
+  borrarRubro,
+  getAportaciones,
+  getMiPerfil,
+  getMiembrosHogar,
+} from '../api';
 import { money, esc, fechaCorta, mesAnterior, periodoActual } from '../format';
 import { iconoRubro, refreshIcons } from '../icons';
 import { topbarBack } from '../chrome';
@@ -7,7 +18,13 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
   const id = Number(params.get('id'));
   root.innerHTML = `<div class="screen">${topbarBack('Rubro', '/')}<div class="placeholder">Cargando…</div></div>`;
 
-  const [resumen, gastos, metodos] = await Promise.all([getResumen(), getGastos(), getMetodos()]);
+  const [resumen, gastos, metodos, yo, hogar] = await Promise.all([
+    getResumen(),
+    getGastos(),
+    getMetodos(),
+    getMiPerfil(),
+    getMiembrosHogar(),
+  ]);
   const r = resumen.rubros.find((x) => x.id === id);
   if (!r) {
     root.innerHTML = `<div class="screen">${topbarBack('Rubro', '/')}<div class="placeholder">No se encontró ese rubro.</div></div>`;
@@ -18,10 +35,10 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
     getAportaciones(resumen.periodo),
     getAportaciones(mesAnterior(resumen.periodo)),
   ]);
-  const fuentesYaCubiertas = new Set(aportacionesEsteMes.filter((a) => a.rubro_id === id).map((a) => a.fuente));
-  const copiables = aportacionesMesPasado.filter((a) => a.rubro_id === id && !fuentesYaCubiertas.has(a.fuente));
+  const yaCubiertos = new Set(aportacionesEsteMes.filter((a) => a.rubro_id === id).map((a) => a.usuario_id));
+  const copiables = aportacionesMesPasado.filter((a) => a.rubro_id === id && a.usuario_id && !yaCubiertos.has(a.usuario_id));
 
-  const total = r.aportado_yo + r.aportado_pareja;
+  const total = r.aportaciones.reduce((s, a) => s + a.monto, 0);
   const usado = r.gastado + r.cuotas_msi;
   const pctReal = total > 0 ? (usado / total) * 100 : 0;
   const estado = pctReal >= 100 ? 'error' : pctReal >= 90 ? 'warn' : '';
@@ -43,6 +60,10 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
         </div>`;
     })
     .join('');
+
+  const aportacionesHtml =
+    r.aportaciones.map((a) => `<div class="fila-kv"><span class="k">${esc(a.nombre ?? '—')}</span><span class="v">${money(a.monto)}</span></div>`).join('') ||
+    '<div class="chico">Sin aportaciones este mes</div>';
 
   root.innerHTML = `
     <div class="screen">
@@ -76,8 +97,7 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
       <div class="stat-pair">
         <div class="stat-box">
           <div class="label">&lt;aportaciones&gt;</div>
-          <div class="fila-kv"><span class="k">Tú</span><span class="v">${money(r.aportado_yo)}</span></div>
-          <div class="fila-kv"><span class="k">Pareja</span><span class="v">${money(r.aportado_pareja)}</span></div>
+          ${aportacionesHtml}
           <hr />
           <div class="fila-kv"><span class="k">Total</span><span class="v" style="font-weight:700">${money(total)}</span></div>
         </div>
@@ -103,10 +123,9 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
       <div id="form-aportar" class="inline-form" hidden>
         <form id="fa">
           <div class="campo">
-            <div class="k">Fuente</div>
-            <div class="pills" id="pills-fuente">
-              <span class="pill activa" data-f="yo">Tú</span>
-              <span class="pill" data-f="pareja">Pareja</span>
+            <div class="k">Quién aporta</div>
+            <div class="pills" id="pills-aportante">
+              ${hogar.map((p) => `<span class="pill ${p.id === yo.id ? 'activa' : ''}" data-uid="${p.id}">${esc(p.nombre)}</span>`).join('')}
             </div>
           </div>
           <div class="campo">
@@ -155,16 +174,16 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
     }
   });
 
-  let fuente: 'yo' | 'pareja' = 'yo';
+  let usuarioId: string = yo.id;
   root.querySelector('#toggle-aportar')!.addEventListener('click', () => {
     const el = root.querySelector<HTMLDivElement>('#form-aportar')!;
     el.hidden = !el.hidden;
   });
-  root.querySelector('#pills-fuente')!.addEventListener('click', (e) => {
+  root.querySelector('#pills-aportante')!.addEventListener('click', (e) => {
     const p = (e.target as HTMLElement).closest<HTMLElement>('.pill');
     if (!p) return;
-    fuente = p.dataset.f as 'yo' | 'pareja';
-    root.querySelectorAll('#pills-fuente .pill').forEach((el) => el.classList.toggle('activa', el === p));
+    usuarioId = p.dataset.uid!;
+    root.querySelectorAll('#pills-aportante .pill').forEach((el) => el.classList.toggle('activa', el === p));
   });
   root.querySelector<HTMLFormElement>('#fa')!.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -177,7 +196,7 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
       return;
     }
     try {
-      await crearAportacion({ rubro_id: id, fuente, monto, periodo: periodoActual() });
+      await crearAportacion({ rubro_id: id, usuario_id: usuarioId, monto, periodo: periodoActual() });
       renderDetalleRubro(root, params);
     } catch (err) {
       errorEl.textContent = (err as Error).message;
@@ -186,7 +205,9 @@ export async function renderDetalleRubro(root: HTMLElement, params: URLSearchPar
   });
 
   root.querySelector('#copiar-aportaciones')?.addEventListener('click', async () => {
-    await Promise.all(copiables.map((a) => crearAportacion({ rubro_id: id, fuente: a.fuente, monto: a.monto, periodo: periodoActual() })));
+    await Promise.all(
+      copiables.map((a) => crearAportacion({ rubro_id: id, usuario_id: a.usuario_id!, monto: a.monto, periodo: periodoActual() }))
+    );
     renderDetalleRubro(root, params);
   });
 
